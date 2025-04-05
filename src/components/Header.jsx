@@ -1,19 +1,19 @@
-import { useNavigate } from 'react-router-dom';
-import { IoMdCheckboxOutline } from 'react-icons/io';
+import { Link, useNavigate } from 'react-router-dom';
 const Header = () => {
   const navigate = useNavigate();
   return (
     <>
       <header>
-        <div className='p-6 w-3/4 mt-0 mb-0 mr-auto ml-auto  flex items-center justify-between'>
-          <div className='logo flex items-center gap-3'>
-            <div className='flex items-end text-slate-800'>
-              <h1 className='font-expletus text-4xl  font-bold   transition-transform rotate-180'>
+        <div className='p-6 w-3/4 mt-0 mb-0 mr-auto ml-auto  flex items-center justify-between '>
+          <div className='logo flex items-center gap-2 '>
+            <Link to={'/'} className='flex gap-1 text-slate-800'>
+              <h1 className='font-expletus text-6xl  font-semibold transition-transform rotate-180  '>
                 X
               </h1>
-              <span className='font-D-dinExp text-3xl'>am</span>
-            </div>
-            <IoMdCheckboxOutline className='text-2xl text-red-500' />
+              <span className='font-D-dinExp text-4xl self-end tracking-[1.5px]'>
+                am
+              </span>
+            </Link>
           </div>
           <div className='flex gap-2 items-center '>
             <button
