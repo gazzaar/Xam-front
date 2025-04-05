@@ -2,7 +2,13 @@
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        expletus: ['Expletus Sans', 'sans-serif'],
+        'd-din': ['D-din', 'sans-serif'],
+        'D-dinExp': ['D-dinExp', 'sans-serif'],
+      },
+    },
   },
   plugins: [],
 };

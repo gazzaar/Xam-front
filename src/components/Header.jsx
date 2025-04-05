@@ -7,9 +7,12 @@ const Header = () => {
       <header>
         <div className='p-6 w-3/4 mt-0 mb-0 mr-auto ml-auto  flex items-center justify-between'>
           <div className='logo flex items-center gap-3'>
-            <h1 className='text-3xl to-emerald-800 font-bold text-slate-800'>
-              Xam
-            </h1>
+            <div className='flex items-end text-slate-800'>
+              <h1 className='font-expletus text-4xl  font-bold   transition-transform rotate-180'>
+                X
+              </h1>
+              <span className='font-D-dinExp text-3xl'>am</span>
+            </div>
             <IoMdCheckboxOutline className='text-2xl text-red-500' />
           </div>
           <div className='flex gap-2 items-center '>

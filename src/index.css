@@ -1,3 +1,16 @@
+@font-face {
+  font-family: 'D-din';
+  src: url('./assets/fonts/D-DIN.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'D-dinExp';
+  src: url('./assets/fonts/D-DINExp.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
