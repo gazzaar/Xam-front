@@ -13,19 +13,17 @@ import InstructorLayout from './components/instructor/InstructorLayout';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import SignUp from './components/SignUp';
-import { authService } from './services/api';
 
 // Protected Route component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-  const user = authService.getCurrentUser();
+  const token = localStorage.getItem('token');
+  const userRole = localStorage.getItem('userRole');
 
-  if (!user) {
-    // Not logged in, redirect to login page
+  if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    // Role not authorized, redirect to home page
+  if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
     return <Navigate to="/" replace />;
   }
 
@@ -33,9 +31,10 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 };
 
 export default function App() {
-  const user = authService.getCurrentUser();
+  const token = localStorage.getItem('token');
+  const userRole = localStorage.getItem('userRole');
   const defaultRoute =
-    user?.role === 'instructor' ? '/instructor/dashboard' : '/admin/dashboard';
+    userRole === 'instructor' ? '/instructor/dashboard' : '/admin/dashboard';
 
   return (
     <Router>
@@ -79,7 +78,7 @@ export default function App() {
         <Route
           path="/"
           element={
-            user ? <Navigate to={defaultRoute} replace /> : <LandingPage />
+            token ? <Navigate to={defaultRoute} replace /> : <LandingPage />
           }
         />
       </Routes>
