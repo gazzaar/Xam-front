@@ -73,7 +73,7 @@ export default function SignUp() {
       // Remove confirmPassword from the data sent to the server
       const { confirmPassword, ...registrationData } = formData;
 
-      const response = await authService.register(registrationData);
+      const response = await authService.registerInstructor(registrationData);
 
       if (response.success) {
         navigate('/login', {
