@@ -147,24 +147,31 @@ const instructorService = {
   createExam: async (examData) => {
     try {
       const response = await api.post('/instructor/exams', examData);
-      return response.data;
+      return { data: response.data }; // Wrap the response data to match expected format
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to create exam');
+      throw new Error(error.response?.data?.error || 'Failed to create exam');
     }
   },
 
   getExams: async () => {
     try {
       const response = await api.get('/instructor/exams');
-      // Transform the data to match the expected format
-      const exams = response.data.map(exam => ({
-        ...exam,
-        start_date: exam.start_date ? new Date(exam.start_date).toISOString() : null,
-        end_date: exam.end_date ? new Date(exam.end_date).toISOString() : null
-      }));
-      return { success: true, data: exams };
+      console.log('Raw API response:', response.data);
+      return response.data; // Return the data directly without wrapping
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch exams');
+      console.error('Error fetching exams:', error);
+      throw new Error(error.response?.data?.error || 'Failed to fetch exams');
+    }
+  },
+
+  getExamPreview: async (examId) => {
+    try {
+      const response = await api.get(`/instructor/exams/${examId}/preview`);
+      console.log('Exam preview response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching exam preview:', error);
+      throw new Error(error.response?.data?.error || 'Failed to fetch exam preview');
     }
   },
 
@@ -182,7 +189,8 @@ const instructorService = {
       const response = await api.delete(`/instructor/exams/${examId}`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to delete exam');
+      console.error('Error deleting exam:', error);
+      throw new Error(error.response?.data?.error || 'Failed to delete exam');
     }
   },
 
@@ -202,17 +210,18 @@ const instructorService = {
   uploadAllowedStudents: async (examId, file) => {
     try {
       const formData = new FormData();
-      formData.append('students_file', file);
+      formData.append('file', file); // Changed to 'file' to match the multer field name in the route
 
-      const response = await api.post(`/instructor/exams/${examId}/students`, formData, {
+      const response = await api.post(`/instructor/exams/${examId}/students/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
       return response.data;
     } catch (error) {
+      console.error('Upload error:', error);
       throw new Error(
-        error.response?.data?.message || 'Failed to upload student list'
+        error.response?.data?.error || 'Failed to upload student list'
       );
     }
   },
@@ -228,75 +237,82 @@ const instructorService = {
     }
   },
 
-  // Subject Management
-  createSubject: async (subjectData) => {
+  // Course Management
+  createCourse: async (courseData) => {
     try {
-      const response = await api.post('/instructor/subjects', subjectData);
+      const response = await api.post('/instructor/courses', courseData);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to create subject');
+      throw new Error(error.response?.data?.error || 'Failed to create course');
     }
   },
 
-  getSubjects: async () => {
+  getCourses: async () => {
     try {
-      const response = await api.get('/instructor/subjects');
+      const response = await api.get('/instructor/courses');
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch subjects');
+      throw new Error(error.response?.data?.error || 'Failed to fetch courses');
     }
   },
 
-  updateSubject: async (subjectId, subjectData) => {
+  updateCourse: async (courseId, courseData) => {
     try {
-      const response = await api.put(`/instructor/subjects/${subjectId}`, subjectData);
+      const response = await api.put(`/instructor/courses/${courseId}`, courseData);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to update subject');
+      throw new Error(error.response?.data?.error || 'Failed to update course');
     }
   },
 
-  deleteSubject: async (subjectId) => {
+  deleteCourse: async (courseId) => {
     try {
-      const response = await api.delete(`/instructor/subjects/${subjectId}`);
+      const response = await api.delete(`/instructor/courses/${courseId}`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to delete subject');
+      throw new Error(error.response?.data?.error || 'Failed to delete course');
     }
   },
 
   // Question Bank Management
-  createQuestionBank: async (subjectId, questionBankData) => {
+  createQuestionBank: async (courseId, questionBankData) => {
     try {
-      // Combine subject_id with the question bank data
-      const data = {
-        subject_id: subjectId,
-        bank_name: questionBankData.bank_name,
-        description: questionBankData.description
-      };
-      
-      const response = await api.post('/instructor/question-banks', data);
+      const response = await api.post('/instructor/question-banks', {
+        course_id: courseId,
+        ...questionBankData,
+      });
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to create question bank');
+      throw new Error(
+        error.response?.data?.error || 'Failed to create question bank'
+      );
     }
   },
 
-  getQuestionBanksBySubject: async (subjectId) => {
+  getQuestionBanksByCourse: async (courseId) => {
     try {
-      const response = await api.get(`/instructor/question-banks?subject_id=${subjectId}`);
+      const response = await api.get('/instructor/question-banks', {
+        params: { course_id: courseId },
+      });
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch question banks');
+      throw new Error(
+        error.response?.data?.error || 'Failed to fetch question banks'
+      );
     }
   },
 
   updateQuestionBank: async (questionBankId, questionBankData) => {
     try {
-      const response = await api.put(`/instructor/question-banks/${questionBankId}`, questionBankData);
+      const response = await api.put(
+        `/instructor/question-banks/${questionBankId}`,
+        questionBankData
+      );
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to update question bank');
+      throw new Error(
+        error.response?.data?.error || 'Failed to update question bank'
+      );
     }
   },
 
@@ -305,7 +321,9 @@ const instructorService = {
       const response = await api.delete(`/instructor/question-banks/${questionBankId}`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to delete question bank');
+      throw new Error(
+        error.response?.data?.error || 'Failed to delete question bank'
+      );
     }
   },
 
@@ -314,7 +332,9 @@ const instructorService = {
       const response = await api.post(`/instructor/question-banks/${questionBankId}/questions`, { questions });
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to add questions');
+      throw new Error(
+        error.response?.data?.message || 'Failed to add questions'
+      );
     }
   },
 
@@ -323,7 +343,9 @@ const instructorService = {
       const response = await api.get(`/instructor/question-banks/${questionBankId}/questions`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch questions');
+      throw new Error(
+        error.response?.data?.message || 'Failed to fetch questions'
+      );
     }
   },
 
@@ -441,60 +463,60 @@ const questionBankService = {
   },
 };
 
-// Subject Management Service
-const subjectManagementService = {
-  createSubject: async (subjectData) => {
+// course Management Service
+const courseManagementService = {
+  createcourse: async (courseData) => {
     try {
-      const response = await api.post('/instructor/subjects', subjectData);
+      const response = await api.post('/instructor/courses', courseData);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to create subject');
+      throw new Error(error.response?.data?.message || 'Failed to create course');
     }
   },
 
-  getSubjects: async () => {
+  getCourses: async () => {
     try {
-      const response = await api.get('/instructor/subjects');
+      const response = await api.get('/instructor/courses');
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch subjects');
+      throw new Error(error.response?.data?.message || 'Failed to fetch courses');
     }
   },
 
-  updateSubject: async (subjectId, subjectData) => {
+  updatecourse: async (courseId, courseData) => {
     try {
-      const response = await api.put(`/instructor/subjects/${subjectId}`, subjectData);
+      const response = await api.put(`/instructor/courses/${courseId}`, courseData);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to update subject');
+      throw new Error(error.response?.data?.message || 'Failed to update course');
     }
   },
 
-  deleteSubject: async (subjectId) => {
+  deletecourse: async (courseId) => {
     try {
-      const response = await api.delete(`/instructor/subjects/${subjectId}`);
+      const response = await api.delete(`/instructor/courses/${courseId}`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to delete subject');
+      throw new Error(error.response?.data?.message || 'Failed to delete course');
     }
   },
 };
 
 // Question Bank Management Service
 const questionBankManagementService = {
-  createQuestionBank: async (subject_id,bankData) => {
+  createQuestionBank: async (course_id,bankData) => {
     try {
-      const response = await api.post(`/instructor/question-banks`, { subject_id: subjectId, ...questionBankData });
+      const response = await api.post(`/instructor/question-banks`, { course_id: courseId, ...questionBankData });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to create question bank');
     }
   },
 
-  getQuestionBanks: async (subjectId) => {
+  getQuestionBanks: async (courseId) => {
     try {
       const response = await api.get('/instructor/question-banks', {
-        params: { subject_id: subjectId }
+        params: { course_id: courseId }
       });
       return response.data;
     } catch (error) {
@@ -525,11 +547,12 @@ const questionBankManagementService = {
 const examService = instructorService;
 
 export {
-  adminService,
-  authService,
-  examService,
-  instructorService,
-  questionBankManagementService,
-  questionBankService,
-  subjectManagementService
+    adminService,
+    authService,
+    examService,
+    instructorService,
+    questionBankManagementService,
+    questionBankService,
+    courseManagementService
 };
+

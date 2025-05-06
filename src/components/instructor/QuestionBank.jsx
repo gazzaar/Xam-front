@@ -6,16 +6,17 @@ import { instructorService } from '../../services/api';
 export default function QuestionBank() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [subjects, setSubjects] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [questionBanks, setQuestionBanks] = useState([]);
   const [questions, setQuestions] = useState([]);
-  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedBank, setSelectedBank] = useState(null);
-  const [showAddSubjectForm, setShowAddSubjectForm] = useState(false);
+  const [showAddCourseForm, setShowAddCourseForm] = useState(false);
   const [showAddBankForm, setShowAddBankForm] = useState(false);
   const [showAddQuestionForm, setShowAddQuestionForm] = useState(false);
   const [showEditQuestionForm, setShowEditQuestionForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState({ show: false, type: '', id: null });
   const [questionFormData, setQuestionFormData] = useState({
     question_text: '',
     question_type: 'multiple-choice',
@@ -23,11 +24,12 @@ export default function QuestionBank() {
     explanation: '',
     points: 1,
     image_url: '',
-    chapter: ''
+    chapter: '',
+    difficulty: 'medium'
   });
-  const [subjectFormData, setSubjectFormData] = useState({
-    subject_name: '',
-    subject_code: '',
+  const [courseFormData, setCourseFormData] = useState({
+    course_name: '',
+    course_code: '',
     description: '',
   });
   const [bankFormData, setBankFormData] = useState({
@@ -41,22 +43,22 @@ export default function QuestionBank() {
       navigate('/login');
       return;
     }
-    fetchSubjects();
+    fetchCourses();
   }, [navigate]);
 
-  const handleCreateSubject = async (e) => {
+  const handleCreateCourse = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await instructorService.createSubject(subjectFormData);
-      setShowAddSubjectForm(false);
-      setSubjectFormData({ subject_name: '', subject_code: '', description: '' });
-      // Refresh subjects list
-      await fetchSubjects();
-      toast.success('Subject created successfully');
+      const response = await instructorService.createCourse(courseFormData);
+      setShowAddCourseForm(false);
+      setCourseFormData({ course_name: '', course_code: '', description: '' });
+      // Refresh courses list
+      await fetchCourses();
+      toast.success('Course created successfully');
     } catch (error) {
-      console.error('Error creating subject:', error);
-      toast.error(error.message || 'Failed to create subject');
+      console.error('Error creating Course:', error);
+      toast.error(error.message || 'Failed to create Course');
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +79,8 @@ export default function QuestionBank() {
         explanation: questionFormData.explanation,
         points: questionFormData.points,
         image_url: questionFormData.image_url,
-        chapter: questionFormData.chapter
+        chapter: questionFormData.chapter,
+        difficulty: questionFormData.difficulty
       };
       
       await instructorService.addQuestionsToQuestionBank(selectedBank.question_bank_id, [questionData]);
@@ -89,7 +92,8 @@ export default function QuestionBank() {
         explanation: '',
         points: 1,
         image_url: '',
-        chapter: ''
+        chapter: '',
+        difficulty: 'medium'
       });
       // Refresh questions list
       await fetchQuestions(selectedBank.question_bank_id);
@@ -104,15 +108,15 @@ export default function QuestionBank() {
 
   const handleCreateQuestionBank = async (e) => {
     e.preventDefault();
-    if (!selectedSubject) {
-      toast.error('Please select a subject first');
+    if (!selectedCourse) {
+      toast.error('Please select a course first');
       return;
     }
     setIsLoading(true);
     try {
-      // Pass subject_id as a separate parameter and question bank data as an object
+      // Pass course_id as a separate parameter and question bank data as an object
       await instructorService.createQuestionBank(
-        selectedSubject.subject_id,
+        selectedCourse.course_id,
         {
           bank_name: bankFormData.bank_name,
           description: bankFormData.description
@@ -121,7 +125,7 @@ export default function QuestionBank() {
       setShowAddBankForm(false);
       setBankFormData({ bank_name: '', description: '' });
       // Refresh question banks list
-      await fetchQuestionBanks(selectedSubject.subject_id);
+      await fetchQuestionBanks(selectedCourse.course_id);
       toast.success('Question bank created successfully');
     } catch (error) {
       console.error('Error creating question bank:', error);
@@ -131,22 +135,22 @@ export default function QuestionBank() {
     }
   };
 
-  const fetchSubjects = async () => {
+  const fetchCourses = async () => {
     try {
-      const response = await instructorService.getSubjects();
-      setSubjects(response);
+      const response = await instructorService.getCourses();
+      setCourses(response);
     } catch (error) {
-      console.error('Error fetching subjects:', error);
-      toast.error('Failed to fetch subjects');
+      console.error('Error fetching courses:', error);
+      toast.error('Failed to fetch courses');
       if (error.response?.status === 401) {
         navigate('/login');
       }
     }
   };
 
-  const fetchQuestionBanks = async (subjectId) => {
+  const fetchQuestionBanks = async (courseId) => {
     try {
-      const response = await instructorService.getQuestionBanksBySubject(subjectId);
+      const response = await instructorService.getQuestionBanksByCourse(courseId);
       setQuestionBanks(response);
     } catch (error) {
       console.error('Error fetching question banks:', error);
@@ -167,10 +171,10 @@ export default function QuestionBank() {
     }
   };
 
-  const handleSubjectSelect = (subject) => {
-    setSelectedSubject(subject);
+  const handleCourseSelect = (course) => {
+    setSelectedCourse(course);
     setSelectedBank(null);
-    fetchQuestionBanks(subject.subject_id);
+    fetchQuestionBanks(course.course_id);
   };
 
   const handleBankSelect = async (bank) => {
@@ -190,7 +194,7 @@ export default function QuestionBank() {
     // Format options for the form - combine options text with correct_answers
     const formattedOptions = question.options.map((optionText, index) => ({
       text: optionText,
-      is_correct: question.correct_answers[index] === true || question.correct_answers[index] === 't'
+      is_correct: question.correct_answers?.[index] === true || question.correct_answers?.[index] === 't'
     }));
     
     setEditingQuestion(question);
@@ -201,7 +205,8 @@ export default function QuestionBank() {
       explanation: question.explanation || '',
       points: question.points || 1,
       image_url: question.image_url || '',
-      chapter: question.chapter || ''
+      chapter: question.chapter || '',
+      difficulty: question.difficulty || 'medium'
     });
     setShowEditQuestionForm(true);
   };
@@ -234,7 +239,8 @@ export default function QuestionBank() {
         explanation: questionFormData.explanation || '',
         points: parseInt(questionFormData.points) || 1,
         image_url: questionFormData.image_url || '',
-        chapter: questionFormData.chapter || ''
+        chapter: questionFormData.chapter || '',
+        difficulty: questionFormData.difficulty
       };
       
       console.log('Sending update data:', JSON.stringify(questionData, null, 2));
@@ -248,7 +254,8 @@ export default function QuestionBank() {
         explanation: '',
         points: 1,
         image_url: '',
-        chapter: ''
+        chapter: '',
+        difficulty: 'medium'
       });
       // Refresh questions list
       await fetchQuestions(selectedBank.question_bank_id);
@@ -281,36 +288,113 @@ export default function QuestionBank() {
     }
   };
 
+  // Add function to delete a question bank
+  const handleDeleteQuestionBank = async (bankId) => {
+    if (!bankId) return;
+    
+    setIsLoading(true);
+    try {
+      await instructorService.deleteQuestionBank(bankId);
+      
+      // Update the state to remove the deleted bank
+      setQuestionBanks(prev => prev.filter(bank => bank.question_bank_id !== bankId));
+      
+      // If the deleted bank was selected, reset selection
+      if (selectedBank && selectedBank.question_bank_id === bankId) {
+        setSelectedBank(null);
+        setQuestions([]);
+      }
+      
+      toast.success('Question bank deleted successfully');
+    } catch (error) {
+      console.error('Error deleting question bank:', error);
+      toast.error(error.response?.data?.error || 'Failed to delete question bank');
+    } finally {
+      setIsLoading(false);
+      setDeleteConfirmation({ show: false, type: 'questionBank', id: bankId });
+    }
+  };
+  
+  // Add function to delete a course
+  const handleDeleteCourse = async (courseId) => {
+    if (!courseId) return;
+    
+    setIsLoading(true);
+    try {
+      await instructorService.deleteCourse(courseId);
+      
+      // Update the state to remove the deleted course
+      setCourses(prev => prev.filter(course => course.course_id !== courseId));
+      
+      // If the deleted course was selected, reset selection
+      if (selectedCourse && selectedCourse.course_id === courseId) {
+        setSelectedCourse(null);
+        setSelectedBank(null);
+        setQuestionBanks([]);
+        setQuestions([]);
+      }
+      
+      toast.success('Course deleted successfully');
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      toast.error(error.response?.data?.error || 'Failed to delete course');
+    } finally {
+      setIsLoading(false);
+      setDeleteConfirmation({ show: false, type: 'course', id: courseId });
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-wrap">
-        {/* Subjects Panel */}
+        {/* Courses Panel */}
         <div className="w-full md:w-1/3 p-3">
-          <div className="bg-white rounded-lg shadow p-6 h-auto">
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-slate-800">Subjects</h2>
+              <h2 className="text-xl font-semibold text-slate-800">Courses</h2>
               <button
-                onClick={() => setShowAddSubjectForm(true)}
-                className="px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                onClick={() => setShowAddCourseForm(true)}
+                className="flex items-center px-3 py-1.5 bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200"
               >
-                Add Subject
+                <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Course
               </button>
             </div>
-
-            {/* Subject List */}
+            
             <div className="space-y-3">
-              {subjects.map((subject) => (
+              {courses.map((course) => (
                 <div
-                  key={subject.subject_id}
-                  onClick={() => handleSubjectSelect(subject)}
-                  className={`p-4 rounded-lg cursor-pointer transition-colors duration-200 ${
-                    selectedSubject?.subject_id === subject.subject_id
-                      ? 'bg-slate-100 border-slate-500'
-                      : 'hover:bg-gray-50 border-gray-200'
-                  } border`}
+                  key={course.course_id}
+                  onClick={() => handleCourseSelect(course)}
+                  className={`relative p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+                    selectedCourse?.course_id === course.course_id
+                      ? 'border-slate-500 bg-slate-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
                 >
-                  <h3 className="font-medium text-slate-900">{subject.subject_name}</h3>
-                  <p className="text-sm text-slate-500">{subject.subject_code}</p>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium text-slate-800">{course.course_name}</h3>
+                      <p className="text-sm text-slate-500">{course.course_code}</p>
+                      {course.description && (
+                        <p className="mt-2 text-sm text-slate-600 line-clamp-2">{course.description}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteConfirmation({ show: true, type: 'course', id: course.course_id });
+                      }}
+                      className="text-red-500 hover:text-red-700 transition-colors duration-200 ml-2 flex-shrink-0"
+                      title="Delete Course"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -319,51 +403,78 @@ export default function QuestionBank() {
 
         {/* Question Banks Panel */}
         <div className="w-full md:w-1/3 p-3">
-          <div className="bg-white rounded-lg shadow p-6 h-auto">
+          <div className={`bg-white rounded-lg shadow-md p-6 mb-6 ${!selectedCourse ? 'opacity-75 pointer-events-none' : ''}`}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-slate-800">Question Banks</h2>
-              {selectedSubject && (
-                <button
-                  onClick={() => setShowAddBankForm(true)}
-                  className="px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500"
-                >
-                  Add Bank
-                </button>
-              )}
+              <button
+                onClick={() => setShowAddBankForm(true)}
+                disabled={!selectedCourse}
+                className="flex items-center px-3 py-1.5 bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200 disabled:bg-slate-400 disabled:cursor-not-allowed"
+              >
+                <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Question Bank
+              </button>
             </div>
-
-            {/* Question Bank List */}
-            <div className="space-y-3">
-              {questionBanks.map((bank) => (
-                <div
-                  key={bank.question_bank_id}
-                  onClick={() => handleBankSelect(bank)}
-                  className={`p-4 rounded-lg cursor-pointer transition-colors duration-200 ${
-                    selectedBank?.question_bank_id === bank.question_bank_id
-                      ? 'bg-slate-100 border-slate-500'
-                      : 'hover:bg-gray-50 border-gray-200'
-                  } border`}
-                >
-                  <h3 className="font-medium text-slate-900">{bank.bank_name}</h3>
-                  {bank.description && (
-                    <p className="text-sm text-slate-500">{bank.description}</p>
-                  )}
-                </div>
-              ))}
-            </div>
+            
+            {selectedCourse ? (
+              <div className="space-y-3">
+                {questionBanks.map((bank) => (
+                  <div
+                    key={bank.question_bank_id}
+                    onClick={() => handleBankSelect(bank)}
+                    className={`relative p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+                      selectedBank?.question_bank_id === bank.question_bank_id
+                        ? 'border-slate-500 bg-slate-50'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium text-slate-800">{bank.bank_name}</h3>
+                        <p className="text-sm text-slate-500">Questions: {bank.question_count || 0}</p>
+                        {bank.description && (
+                          <p className="mt-2 text-sm text-slate-600 line-clamp-2">{bank.description}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmation({ show: true, type: 'questionBank', id: bank.question_bank_id });
+                        }}
+                        className="text-red-500 hover:text-red-700 transition-colors duration-200 ml-2 flex-shrink-0"
+                        title="Delete Question Bank"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                Please select a course to view question banks
+              </div>
+            )}
           </div>
         </div>
 
         {/* Questions Panel */}
         <div className="w-full md:w-1/3 p-3">
-          <div className="bg-white rounded-lg shadow p-6 h-auto">
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-slate-800">Questions</h2>
               {selectedBank && (
                 <button
                   onClick={() => setShowAddQuestionForm(true)}
-                  className="px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  className="flex items-center px-3 py-1.5 bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200"
                 >
+                  <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
                   Add Question
                 </button>
               )}
@@ -425,6 +536,9 @@ export default function QuestionBank() {
                   {question.explanation && (
                     <p className="text-sm text-slate-500">Explanation: {question.explanation}</p>
                   )}
+                  {question.difficulty && (
+                    <p className="text-sm text-slate-500">Difficulty: {question.difficulty}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -448,7 +562,8 @@ export default function QuestionBank() {
                     explanation: '',
                     points: 1,
                     image_url: '',
-                    chapter: ''
+                    chapter: '',
+                    difficulty: 'medium'
                   });
                 }}
                 className="text-slate-400 hover:text-slate-500 transition-colors duration-200"
@@ -548,6 +663,22 @@ export default function QuestionBank() {
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                     placeholder="e.g., Chapter 3"
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Difficulty</label>
+                  <select
+                    value={questionFormData.difficulty}
+                    onChange={(e) => setQuestionFormData({
+                      ...questionFormData,
+                      difficulty: e.target.value
+                    })}
+                    className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
+                  >
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
                 </div>
                 
                 <div className="md:col-span-2">
@@ -686,7 +817,8 @@ export default function QuestionBank() {
                       explanation: '',
                       points: 1,
                       image_url: '',
-                      chapter: ''
+                      chapter: '',
+                      difficulty: 'medium'
                     });
                   }}
                   className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
@@ -721,7 +853,8 @@ export default function QuestionBank() {
                     explanation: '',
                     points: 1,
                     image_url: '',
-                    chapter: ''
+                    chapter: '',
+                    difficulty: 'medium'
                   });
                 }}
                 className="text-slate-400 hover:text-slate-500 transition-colors duration-200"
@@ -821,6 +954,22 @@ export default function QuestionBank() {
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                     placeholder="e.g., Chapter 3"
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Difficulty</label>
+                  <select
+                    value={questionFormData.difficulty}
+                    onChange={(e) => setQuestionFormData({
+                      ...questionFormData,
+                      difficulty: e.target.value
+                    })}
+                    className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
+                  >
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
                 </div>
                 
                 <div className="md:col-span-2">
@@ -969,14 +1118,14 @@ export default function QuestionBank() {
         </div>
       )}
 
-      {/* Add Subject Modal */}
-      {showAddSubjectForm && (
+      {/* Add course Modal */}
+      {showAddCourseForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">Create New Subject</h3>
+              <h3 className="text-lg font-semibold text-slate-800">Create New Course</h3>
               <button
-                onClick={() => setShowAddSubjectForm(false)}
+                onClick={() => setShowAddCourseForm(false)}
                 className="text-slate-400 hover:text-slate-500 transition-colors duration-200"
               >
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -984,13 +1133,13 @@ export default function QuestionBank() {
                 </svg>
               </button>
             </div>
-            <form onSubmit={handleCreateSubject} className="space-y-4">
+            <form onSubmit={handleCreateCourse} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700">Subject Name</label>
+                <label className="block text-sm font-medium text-slate-700">Course Name</label>
                 <input
                   type="text"
-                  value={subjectFormData.subject_name}
-                  onChange={(e) => setSubjectFormData(prev => ({ ...prev, subject_name: e.target.value }))}
+                  value={courseFormData.course_name}
+                  onChange={(e) => setCourseFormData(prev => ({ ...prev, course_name: e.target.value }))}
                   className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
                     focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
                   placeholder="e.g., Computer Science"
@@ -998,11 +1147,11 @@ export default function QuestionBank() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700">Subject Code</label>
+                <label className="block text-sm font-medium text-slate-700">Course Code</label>
                 <input
                   type="text"
-                  value={subjectFormData.subject_code}
-                  onChange={(e) => setSubjectFormData(prev => ({ ...prev, subject_code: e.target.value }))}
+                  value={courseFormData.course_code}
+                  onChange={(e) => setCourseFormData(prev => ({ ...prev, course_code: e.target.value }))}
                   className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
                     focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
                   placeholder="e.g., CS101"
@@ -1012,18 +1161,18 @@ export default function QuestionBank() {
               <div>
                 <label className="block text-sm font-medium text-slate-700">Description</label>
                 <textarea
-                  value={subjectFormData.description}
-                  onChange={(e) => setSubjectFormData(prev => ({ ...prev, description: e.target.value }))}
+                  value={courseFormData.description}
+                  onChange={(e) => setCourseFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
                   className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
                     focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
-                  placeholder="Enter a brief description of the subject"
+                  placeholder="Enter a brief description of the course"
                 />
               </div>
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowAddSubjectForm(false)}
+                  onClick={() => setShowAddCourseForm(false)}
                   className="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-gray-50
                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
                 >
@@ -1035,7 +1184,7 @@ export default function QuestionBank() {
                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-all duration-200"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Creating...' : 'Create Subject'}
+                  {isLoading ? 'Creating...' : 'Create Course'}
                 </button>
               </div>
             </form>
@@ -1101,6 +1250,50 @@ export default function QuestionBank() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-slate-800">Confirm Deletion</h3>
+              <p className="text-slate-600 mt-2">
+                {deleteConfirmation.type === 'course' 
+                  ? 'Are you sure you want to delete this course? This will also delete all associated question banks and questions.' 
+                  : deleteConfirmation.type === 'questionBank'
+                    ? 'Are you sure you want to delete this question bank? This will also delete all questions in this bank.'
+                    : 'Are you sure you want to delete this item?'
+                }
+              </p>
+            </div>
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmation({ show: false, type: '', id: null })}
+                className="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-gray-50
+                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (deleteConfirmation.type === 'course') {
+                    handleDeleteCourse(deleteConfirmation.id);
+                  } else if (deleteConfirmation.type === 'questionBank') {
+                    handleDeleteQuestionBank(deleteConfirmation.id);
+                  }
+                }}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700
+                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}
