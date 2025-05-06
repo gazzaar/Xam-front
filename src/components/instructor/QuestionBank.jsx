@@ -480,14 +480,31 @@ export default function QuestionBank() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">Question Type</label>
                   <select
                     value={questionFormData.question_type}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      question_type: e.target.value
-                    })}
+                    onChange={(e) => {
+                      const newType = e.target.value;
+                      let newOptions = [...questionFormData.options];
+                      
+                      // If changing to true/false, set options to True and False
+                      if (newType === 'true/false') {
+                        newOptions = [
+                          { text: 'True', is_correct: true },
+                          { text: 'False', is_correct: false }
+                        ];
+                      } else if (newType === 'multiple-choice' && questionFormData.question_type === 'true/false') {
+                        // If changing from true/false to multiple-choice, reset options
+                        newOptions = [{ text: '', is_correct: false }];
+                      }
+                      
+                      setQuestionFormData({
+                        ...questionFormData,
+                        question_type: newType,
+                        options: newOptions
+                      });
+                    }}
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                   >
                     <option value="multiple-choice">Multiple Choice</option>
-                    <option value="true-false">True/False</option>
+                    <option value="true/false">True/False</option>
                   </select>
                 </div>
                 
@@ -536,70 +553,109 @@ export default function QuestionBank() {
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Options</label>
                   <div className="space-y-3">
-                    {questionFormData.options.map((option, index) => (
-                      <div key={index} className="flex items-center space-x-4">
-                        <div className="flex-1">
-                          <div className="relative">
-                            <input
-                              type="text"
-                              value={option.text}
-                              onChange={(e) => {
-                                const newOptions = [...questionFormData.options];
-                                newOptions[index] = { ...option, text: e.target.value };
-                                setQuestionFormData({ ...questionFormData, options: newOptions });
-                              }}
-                              className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 pl-10 py-2 px-3"
-                              placeholder={`Option ${index + 1}`}
-                              required
-                            />
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                              <span className="text-slate-500">{index + 1}.</span>
+                    {questionFormData.question_type === 'true/false' ? (
+                      // True/False options display
+                      questionFormData.options.map((option, index) => (
+                        <div key={index} className="flex items-center space-x-4">
+                          <div className="flex-1">
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={option.text}
+                                disabled
+                                className="block w-full rounded-md border-slate-300 bg-slate-50 shadow-sm pl-10 py-2 px-3"
+                              />
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-slate-500">{index + 1}.</span>
+                              </div>
                             </div>
                           </div>
+                          <div className="flex items-center">
+                            <input
+                              type="radio"
+                              name="correctAnswer"
+                              checked={option.is_correct}
+                              onChange={(e) => {
+                                const newOptions = questionFormData.options.map((opt, i) => 
+                                  ({ ...opt, is_correct: i === index })
+                                );
+                                setQuestionFormData({ ...questionFormData, options: newOptions });
+                              }}
+                              className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300"
+                            />
+                            <label className="ml-2 text-sm text-slate-700">Correct</label>
+                          </div>
                         </div>
-                        <div className="flex items-center">
-                          <input
-                            type="radio"
-                            name="correctAnswer"
-                            checked={option.is_correct}
-                            onChange={(e) => {
-                              const newOptions = questionFormData.options.map((opt, i) => 
-                                ({ ...opt, is_correct: i === index })
-                              );
-                              setQuestionFormData({ ...questionFormData, options: newOptions });
-                            }}
-                            className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300"
-                          />
-                          <label className="ml-2 text-sm text-slate-700">Correct</label>
-                        </div>
-                        {index > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newOptions = questionFormData.options.filter((_, i) => i !== index);
-                              setQuestionFormData({ ...questionFormData, options: newOptions });
-                            }}
-                            className="text-red-500 hover:text-red-700 p-1"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuestionFormData({
-                          ...questionFormData,
-                          options: [...questionFormData.options, { text: '', is_correct: false }]
-                        });
-                      }}
-                      className="mt-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
-                    >
-                      Add Option
-                    </button>
+                      ))
+                    ) : (
+                      // Multiple choice options
+                      <>
+                        {questionFormData.options.map((option, index) => (
+                          <div key={index} className="flex items-center space-x-4">
+                            <div className="flex-1">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={option.text}
+                                  onChange={(e) => {
+                                    const newOptions = [...questionFormData.options];
+                                    newOptions[index] = { ...option, text: e.target.value };
+                                    setQuestionFormData({ ...questionFormData, options: newOptions });
+                                  }}
+                                  className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 pl-10 py-2 px-3"
+                                  placeholder={`Option ${index + 1}`}
+                                  required
+                                />
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <span className="text-slate-500">{index + 1}.</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center">
+                              <input
+                                type="radio"
+                                name="correctAnswer"
+                                checked={option.is_correct}
+                                onChange={(e) => {
+                                  const newOptions = questionFormData.options.map((opt, i) => 
+                                    ({ ...opt, is_correct: i === index })
+                                  );
+                                  setQuestionFormData({ ...questionFormData, options: newOptions });
+                                }}
+                                className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300"
+                              />
+                              <label className="ml-2 text-sm text-slate-700">Correct</label>
+                            </div>
+                            {index > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newOptions = questionFormData.options.filter((_, i) => i !== index);
+                                  setQuestionFormData({ ...questionFormData, options: newOptions });
+                                }}
+                                className="text-red-500 hover:text-red-700 p-1"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuestionFormData({
+                              ...questionFormData,
+                              options: [...questionFormData.options, { text: '', is_correct: false }]
+                            });
+                          }}
+                          className="mt-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
+                        >
+                          Add Option
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
                 
@@ -697,14 +753,31 @@ export default function QuestionBank() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">Question Type</label>
                   <select
                     value={questionFormData.question_type}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      question_type: e.target.value
-                    })}
+                    onChange={(e) => {
+                      const newType = e.target.value;
+                      let newOptions = [...questionFormData.options];
+                      
+                      // If changing to true/false, set options to True and False
+                      if (newType === 'true/false') {
+                        newOptions = [
+                          { text: 'True', is_correct: true },
+                          { text: 'False', is_correct: false }
+                        ];
+                      } else if (newType === 'multiple-choice' && questionFormData.question_type === 'true/false') {
+                        // If changing from true/false to multiple-choice, reset options
+                        newOptions = [{ text: '', is_correct: false }];
+                      }
+                      
+                      setQuestionFormData({
+                        ...questionFormData,
+                        question_type: newType,
+                        options: newOptions
+                      });
+                    }}
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                   >
                     <option value="multiple-choice">Multiple Choice</option>
-                    <option value="true-false">True/False</option>
+                    <option value="true/false">True/False</option>
                   </select>
                 </div>
                 
@@ -753,70 +826,109 @@ export default function QuestionBank() {
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Options</label>
                   <div className="space-y-3">
-                    {questionFormData.options.map((option, index) => (
-                      <div key={index} className="flex items-center space-x-4">
-                        <div className="flex-1">
-                          <div className="relative">
-                            <input
-                              type="text"
-                              value={option.text}
-                              onChange={(e) => {
-                                const newOptions = [...questionFormData.options];
-                                newOptions[index] = { ...option, text: e.target.value };
-                                setQuestionFormData({ ...questionFormData, options: newOptions });
-                              }}
-                              className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 pl-10 py-2 px-3"
-                              placeholder={`Option ${index + 1}`}
-                              required
-                            />
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                              <span className="text-slate-500">{index + 1}.</span>
+                    {questionFormData.question_type === 'true/false' ? (
+                      // True/False options display
+                      questionFormData.options.map((option, index) => (
+                        <div key={index} className="flex items-center space-x-4">
+                          <div className="flex-1">
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={option.text}
+                                disabled
+                                className="block w-full rounded-md border-slate-300 bg-slate-50 shadow-sm pl-10 py-2 px-3"
+                              />
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-slate-500">{index + 1}.</span>
+                              </div>
                             </div>
                           </div>
+                          <div className="flex items-center">
+                            <input
+                              type="radio"
+                              name="correctAnswer"
+                              checked={option.is_correct}
+                              onChange={(e) => {
+                                const newOptions = questionFormData.options.map((opt, i) => 
+                                  ({ ...opt, is_correct: i === index })
+                                );
+                                setQuestionFormData({ ...questionFormData, options: newOptions });
+                              }}
+                              className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300"
+                            />
+                            <label className="ml-2 text-sm text-slate-700">Correct</label>
+                          </div>
                         </div>
-                        <div className="flex items-center">
-                          <input
-                            type="radio"
-                            name="correctAnswer"
-                            checked={option.is_correct}
-                            onChange={(e) => {
-                              const newOptions = questionFormData.options.map((opt, i) => 
-                                ({ ...opt, is_correct: i === index })
-                              );
-                              setQuestionFormData({ ...questionFormData, options: newOptions });
-                            }}
-                            className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300"
-                          />
-                          <label className="ml-2 text-sm text-slate-700">Correct</label>
-                        </div>
-                        {index > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newOptions = questionFormData.options.filter((_, i) => i !== index);
-                              setQuestionFormData({ ...questionFormData, options: newOptions });
-                            }}
-                            className="text-red-500 hover:text-red-700 p-1"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuestionFormData({
-                          ...questionFormData,
-                          options: [...questionFormData.options, { text: '', is_correct: false }]
-                        });
-                      }}
-                      className="mt-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
-                    >
-                      Add Option
-                    </button>
+                      ))
+                    ) : (
+                      // Multiple choice options
+                      <>
+                        {questionFormData.options.map((option, index) => (
+                          <div key={index} className="flex items-center space-x-4">
+                            <div className="flex-1">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={option.text}
+                                  onChange={(e) => {
+                                    const newOptions = [...questionFormData.options];
+                                    newOptions[index] = { ...option, text: e.target.value };
+                                    setQuestionFormData({ ...questionFormData, options: newOptions });
+                                  }}
+                                  className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 pl-10 py-2 px-3"
+                                  placeholder={`Option ${index + 1}`}
+                                  required
+                                />
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <span className="text-slate-500">{index + 1}.</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center">
+                              <input
+                                type="radio"
+                                name="correctAnswer"
+                                checked={option.is_correct}
+                                onChange={(e) => {
+                                  const newOptions = questionFormData.options.map((opt, i) => 
+                                    ({ ...opt, is_correct: i === index })
+                                  );
+                                  setQuestionFormData({ ...questionFormData, options: newOptions });
+                                }}
+                                className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300"
+                              />
+                              <label className="ml-2 text-sm text-slate-700">Correct</label>
+                            </div>
+                            {index > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newOptions = questionFormData.options.filter((_, i) => i !== index);
+                                  setQuestionFormData({ ...questionFormData, options: newOptions });
+                                }}
+                                className="text-red-500 hover:text-red-700 p-1"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuestionFormData({
+                              ...questionFormData,
+                              options: [...questionFormData.options, { text: '', is_correct: false }]
+                            });
+                          }}
+                          className="mt-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
+                        >
+                          Add Option
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
                 
