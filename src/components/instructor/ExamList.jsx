@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { examService } from '../../services/api';
 
 export default function ExamList() {
+  const navigate = useNavigate();
   const [exams, setExams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -12,19 +13,34 @@ export default function ExamList() {
     fetchExams();
   }, []);
 
-  const fetchExams = async () => {
-    try {
-      setIsLoading(true);
-      const response = await examService.getExams();
-      if (response.success) {
-        setExams(response.data);
+  const fetchExams = () => {
+    // Using static data for now
+    const staticExams = [
+      {
+        exam_id: 1,
+        title: 'Sample Exam 1',
+        description: 'This is a sample exam',
+        start_date: '2025-05-04T10:00:00',
+        end_date: '2025-05-04T12:00:00',
+        question_references: [
+          { chapter: 'Chapter 1', count: 5 },
+          { chapter: 'Chapter 2', count: 3 }
+        ]
+      },
+      {
+        exam_id: 2,
+        title: 'Sample Exam 2',
+        description: 'Another sample exam',
+        start_date: '2025-05-05T14:00:00',
+        end_date: '2025-05-05T16:00:00',
+        question_references: [
+          { chapter: 'Chapter 3', count: 4 },
+          { chapter: 'Chapter 4', count: 6 }
+        ]
       }
-    } catch (err) {
-      setError('Failed to load exams');
-      console.error('Error fetching exams:', err);
-    } finally {
-      setIsLoading(false);
-    }
+    ];
+    setExams(staticExams);
+    setIsLoading(false);
   };
 
   const handleDelete = async (examId) => {
@@ -40,7 +56,6 @@ export default function ExamList() {
   };
 
   const canEditOrDelete = (exam) => {
-    // Add debug logging
     console.log('Exam status check:', {
       examId: exam.exam_id,
       status: getExamStatus(exam.start_date, exam.end_date),
@@ -49,7 +64,6 @@ export default function ExamList() {
       endDate: exam.end_date,
     });
 
-    // Only check if it's pending
     return getExamStatus(exam.start_date, exam.end_date) === 'Pending';
   };
 
@@ -102,30 +116,30 @@ export default function ExamList() {
       )}
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3 text-center">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
+        <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative p-6 border w-96 shadow-lg rounded-md bg-white">
+            <div className="text-center">
+              <h3 className="text-lg leading-6 font-medium text-slate-800 mb-3">
                 Delete Exam
               </h3>
-              <div className="mt-2 px-7 py-3">
-                <p className="text-sm text-gray-500">
+              <div className="mb-4">
+                <p className="text-sm text-slate-600">
                   Are you sure you want to delete this exam? This action cannot
                   be undone.
                 </p>
               </div>
-              <div className="items-center px-4 py-3">
-                <button
-                  onClick={() => handleDelete(showDeleteConfirm)}
-                  className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 mr-2"
-                >
-                  Delete
-                </button>
+              <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setShowDeleteConfirm(null)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 text-base font-medium rounded-md shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  className="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-gray-50 transition-colors duration-200"
                 >
                   Cancel
+                </button>
+                <button
+                  onClick={() => handleDelete(showDeleteConfirm)}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors duration-200"
+                >
+                  Delete
                 </button>
               </div>
             </div>
@@ -134,181 +148,108 @@ export default function ExamList() {
       )}
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">My Exams</h1>
+        <h1 className="text-2xl font-bold text-slate-800">My Exams</h1>
         <Link
           to="/instructor/create-exam"
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-slate-700 hover:bg-slate-600"
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-slate-700 hover:bg-slate-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500"
         >
           Create New Exam
         </Link>
       </div>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
-          {exams.map((exam) => (
-            <li key={exam.exam_id}>
-              <div className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-xl font-medium text-gray-900 truncate">
-                      {exam.exam_name}
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500">
-                      {exam.description}
-                    </p>
-                  </div>
-                  <div className="ml-4 flex-shrink-0">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(
-                        exam.start_date,
-                        exam.end_date
-                      )}`}
-                    >
-                      {getExamStatus(exam.start_date, exam.end_date)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Duration
-                    </p>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {exam.duration} minutes
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Start Date
-                    </p>
-                    <p className="mt-1 text-sm text-gray-900">
+      <div className="bg-white shadow overflow-hidden rounded-lg border border-slate-200">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Exam Name
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Start Date
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  End Date
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Questions
+                </th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-slate-200">
+              {exams.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-4 text-center text-sm text-slate-500">
+                    No exams found. Click "Create New Exam" to get started.
+                  </td>
+                </tr>
+              ) : (
+                exams.map((exam) => (
+                  <tr key={exam.exam_id} className="hover:bg-slate-50 transition-colors duration-150">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-slate-800">{exam.title}</div>
+                      <div className="text-sm text-slate-500">{exam.description}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(exam.start_date, exam.end_date)}`}>
+                        {getExamStatus(exam.start_date, exam.end_date)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                       {formatDate(exam.start_date)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      End Date
-                    </p>
-                    <p className="mt-1 text-sm text-gray-900">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                       {formatDate(exam.end_date)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Registered Students
-                    </p>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {exam.total_students}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Total Attempts
-                    </p>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {exam.attempts_made}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-500">
-                    Students & Access Codes
-                  </p>
-                  <div className="mt-1 text-sm text-gray-900">
-                    <p>Registered Students: {exam.total_students}</p>
-                    {exam.student_access_codes &&
-                      exam.student_access_codes.length > 0 && (
-                        <div className="mt-2">
-                          <button
-                            onClick={() => {
-                              // Create CSV content
-                              const csvContent =
-                                'Student Email,Access Code\n' +
-                                exam.student_access_codes
-                                  .map(
-                                    ({ email, access_code }) =>
-                                      `${email},${access_code}`
-                                  )
-                                  .join('\n');
-
-                              // Create blob and download
-                              const blob = new Blob([csvContent], {
-                                type: 'text/csv',
-                              });
-                              const url = window.URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.setAttribute('hidden', '');
-                              a.setAttribute('href', url);
-                              a.setAttribute(
-                                'download',
-                                `access_codes_${exam.exam_name}.csv`
-                              );
-                              document.body.appendChild(a);
-                              a.click();
-                              document.body.removeChild(a);
-                            }}
-                            className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-slate-600 hover:bg-slate-700"
-                          >
-                            Download Access Codes
-                          </button>
-                          <p className="mt-1 text-xs text-gray-500">
-                            Download a CSV file containing student emails and
-                            their access codes
-                          </p>
-                        </div>
-                      )}
-                  </div>
-                </div>
-
-                <div className="mt-4 flex space-x-4">
-                  <Link
-                    to={`/instructor/exams/${exam.exam_id}`}
-                    className="text-slate-600 hover:text-slate-900 text-sm font-medium"
-                  >
-                    View Details
-                  </Link>
-                  <Link
-                    to={`/instructor/exams/${exam.exam_id}/results`}
-                    className="text-slate-600 hover:text-slate-900 text-sm font-medium"
-                  >
-                    View Results
-                  </Link>
-                  {canEditOrDelete(exam) && (
-                    <>
-                      <Link
-                        to={`/instructor/exams/${exam.exam_id}/edit`}
-                        className="text-slate-600 hover:text-slate-900 text-sm font-medium"
-                      >
-                        Edit
-                      </Link>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-slate-600">
+                        {exam.question_references && exam.question_references.map((ref, index) => (
+                          <div key={index} className="flex items-center space-x-1 mb-1">
+                            <span className="font-medium">{ref.chapter}:</span>
+                            <span>{ref.count} questions</span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
-                        onClick={() => setShowDeleteConfirm(exam.exam_id)}
-                        className="text-red-600 hover:text-red-900 text-sm font-medium"
+                        onClick={() => navigate(`/instructor/exams/${exam.exam_id}`)}
+                        className="text-slate-600 hover:text-slate-900 mr-4 transition-colors duration-200"
                       >
-                        Delete
+                        <span className="flex items-center">
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View
+                        </span>
                       </button>
-                    </>
-                  )}
-                  {!canEditOrDelete(exam) && (
-                    <span className="text-xs text-gray-500 italic">
-                      {getExamStatus(exam.start_date, exam.end_date) !==
-                      'Pending'
-                        ? 'Cannot edit/delete - exam has started or ended'
-                        : exam.attempts_made > 0
-                        ? 'Cannot edit/delete - exam has been attempted'
-                        : ''}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+                      {canEditOrDelete(exam) && (
+                        <button
+                          onClick={() => setShowDeleteConfirm(exam.exam_id)}
+                          className="text-red-600 hover:text-red-900 transition-colors duration-200"
+                        >
+                          <span className="flex items-center">
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete
+                          </span>
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
