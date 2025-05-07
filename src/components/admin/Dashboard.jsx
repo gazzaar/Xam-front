@@ -21,7 +21,7 @@ export default function Dashboard() {
       setIsLoading(true);
       const [statsData, instructorsData] = await Promise.all([
         adminService.getDashboardStats(),
-        adminService.getInstructors(),
+        adminService.getAllInstructors(),
       ]);
 
       setStats(statsData);
@@ -42,6 +42,19 @@ export default function Dashboard() {
     } catch (err) {
       setError('Failed to approve instructor');
       console.error('Approval error:', err);
+    }
+  };
+
+  const handleDeleteInstructor = async (instructorId) => {
+    if (window.confirm('Are you sure you want to delete this instructor?')) {
+      try {
+        await adminService.deleteInstructor(instructorId);
+        // Refresh dashboard data after deletion
+        fetchDashboardData();
+      } catch (err) {
+        setError('Failed to delete instructor');
+        console.error('Deletion error:', err);
+      }
     }
   };
 
@@ -259,16 +272,27 @@ export default function Dashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {!instructor.is_approved && (
-                          <button
-                            onClick={() =>
-                              handleApproveInstructor(instructor.user_id)
-                            }
-                            className="text-slate-600 hover:text-slate-900"
-                          >
-                            Approve
-                          </button>
-                        )}
+                        <div className="flex space-x-2">
+                          {!instructor.is_approved ? (
+                            <button
+                              onClick={() =>
+                                handleApproveInstructor(instructor.user_id)
+                              }
+                              className="text-slate-600 hover:text-slate-900"
+                            >
+                              Approve
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() =>
+                                handleDeleteInstructor(instructor.user_id)
+                              }
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
