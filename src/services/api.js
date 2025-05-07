@@ -56,9 +56,22 @@ const authService = {
     }
   },
 
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
+  logout: async () => {
+    try {
+      // Call logout endpoint to invalidate session on server
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear all auth-related data from localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userFirstName');
+      localStorage.removeItem('userLastName');
+
+      // Force reload the page to clear any cached state
+      window.location.href = '/login';
+    }
   },
 
   registerInstructor: async (userData) => {
@@ -147,7 +160,7 @@ const instructorService = {
   createExam: async (examData) => {
     try {
       const response = await api.post('/instructor/exams', examData);
-      return response.data ; // Wrap the response data to match expected format
+      return response.data; // Wrap the response data to match expected format
     } catch (error) {
       throw new Error(error.response?.data?.error || 'Failed to create exam');
     }
@@ -171,7 +184,9 @@ const instructorService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching exam preview:', error);
-      throw new Error(error.response?.data?.error || 'Failed to fetch exam preview');
+      throw new Error(
+        error.response?.data?.error || 'Failed to fetch exam preview'
+      );
     }
   },
 
@@ -212,11 +227,15 @@ const instructorService = {
       const formData = new FormData();
       formData.append('file', file); // Changed to 'file' to match the multer field name in the route
 
-      const response = await api.post(`/instructor/exams/${examId}/students/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await api.post(
+        `/instructor/exams/${examId}/students/upload`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
       return response.data;
     } catch (error) {
       console.error('Upload error:', error);
@@ -258,7 +277,10 @@ const instructorService = {
 
   updateCourse: async (courseId, courseData) => {
     try {
-      const response = await api.put(`/instructor/courses/${courseId}`, courseData);
+      const response = await api.put(
+        `/instructor/courses/${courseId}`,
+        courseData
+      );
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.error || 'Failed to update course');
@@ -318,7 +340,9 @@ const instructorService = {
 
   deleteQuestionBank: async (questionBankId) => {
     try {
-      const response = await api.delete(`/instructor/question-banks/${questionBankId}`);
+      const response = await api.delete(
+        `/instructor/question-banks/${questionBankId}`
+      );
       return response.data;
     } catch (error) {
       throw new Error(
@@ -329,7 +353,10 @@ const instructorService = {
 
   addQuestionsToQuestionBank: async (questionBankId, questions) => {
     try {
-      const response = await api.post(`/instructor/question-banks/${questionBankId}/questions`, { questions });
+      const response = await api.post(
+        `/instructor/question-banks/${questionBankId}/questions`,
+        { questions }
+      );
       return response.data;
     } catch (error) {
       throw new Error(
@@ -340,7 +367,9 @@ const instructorService = {
 
   getQuestionsInQuestionBank: async (questionBankId) => {
     try {
-      const response = await api.get(`/instructor/question-banks/${questionBankId}/questions`);
+      const response = await api.get(
+        `/instructor/question-banks/${questionBankId}/questions`
+      );
       return response.data;
     } catch (error) {
       throw new Error(
@@ -350,10 +379,22 @@ const instructorService = {
   },
 
   // Update question in question bank
-  updateQuestionInQuestionBank: async (questionBankId, questionId, questionData) => {
+  updateQuestionInQuestionBank: async (
+    questionBankId,
+    questionId,
+    questionData
+  ) => {
     try {
-      console.log('Updating question in bank:', questionBankId, 'Question ID:', questionId);
-      const response = await api.put(`/instructor/question-banks/${questionBankId}/questions/${questionId}`, questionData);
+      console.log(
+        'Updating question in bank:',
+        questionBankId,
+        'Question ID:',
+        questionId
+      );
+      const response = await api.put(
+        `/instructor/question-banks/${questionBankId}/questions/${questionId}`,
+        questionData
+      );
       return response.data;
     } catch (error) {
       console.error('Error updating question in bank:', error);
@@ -366,8 +407,15 @@ const instructorService = {
   // Delete question from question bank
   deleteQuestionFromQuestionBank: async (questionBankId, questionId) => {
     try {
-      console.log('Deleting question from bank:', questionBankId, 'Question ID:', questionId);
-      const response = await api.delete(`/instructor/question-banks/${questionBankId}/questions/${questionId}`);
+      console.log(
+        'Deleting question from bank:',
+        questionBankId,
+        'Question ID:',
+        questionId
+      );
+      const response = await api.delete(
+        `/instructor/question-banks/${questionBankId}/questions/${questionId}`
+      );
       return response.data;
     } catch (error) {
       console.error('Error deleting question from bank:', error);
@@ -470,7 +518,9 @@ const courseManagementService = {
       const response = await api.post('/instructor/courses', courseData);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to create course');
+      throw new Error(
+        error.response?.data?.message || 'Failed to create course'
+      );
     }
   },
 
@@ -479,16 +529,23 @@ const courseManagementService = {
       const response = await api.get('/instructor/courses');
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch courses');
+      throw new Error(
+        error.response?.data?.message || 'Failed to fetch courses'
+      );
     }
   },
 
   updatecourse: async (courseId, courseData) => {
     try {
-      const response = await api.put(`/instructor/courses/${courseId}`, courseData);
+      const response = await api.put(
+        `/instructor/courses/${courseId}`,
+        courseData
+      );
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to update course');
+      throw new Error(
+        error.response?.data?.message || 'Failed to update course'
+      );
     }
   },
 
@@ -497,48 +554,66 @@ const courseManagementService = {
       const response = await api.delete(`/instructor/courses/${courseId}`);
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to delete course');
+      throw new Error(
+        error.response?.data?.message || 'Failed to delete course'
+      );
     }
   },
 };
 
 // Question Bank Management Service
 const questionBankManagementService = {
-  createQuestionBank: async (course_id,bankData) => {
+  createQuestionBank: async (courseId, bankData) => {
     try {
-      const response = await api.post(`/instructor/question-banks`, { course_id: courseId, ...questionBankData });
+      const response = await api.post(`/instructor/question-banks`, {
+        course_id: courseId,
+        ...bankData,
+      });
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to create question bank');
+      throw new Error(
+        error.response?.data?.message || 'Failed to create question bank'
+      );
     }
   },
 
   getQuestionBanks: async (courseId) => {
     try {
       const response = await api.get('/instructor/question-banks', {
-        params: { course_id: courseId }
+        params: { course_id: courseId },
       });
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch question banks');
+      throw new Error(
+        error.response?.data?.message || 'Failed to fetch question banks'
+      );
     }
   },
 
   getQuestionsInBank: async (bankId) => {
     try {
-      const response = await api.get(`/instructor/question-banks/${bankId}/questions`);
+      const response = await api.get(
+        `/instructor/question-banks/${bankId}/questions`
+      );
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch questions');
+      throw new Error(
+        error.response?.data?.message || 'Failed to fetch questions'
+      );
     }
   },
 
   addQuestionsToBank: async (bankId, questions) => {
     try {
-      const response = await api.post(`/instructor/question-banks/${bankId}/questions`, { questions });
+      const response = await api.post(
+        `/instructor/question-banks/${bankId}/questions`,
+        { questions }
+      );
       return response.data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to add questions');
+      throw new Error(
+        error.response?.data?.message || 'Failed to add questions'
+      );
     }
   },
 };
@@ -548,9 +623,10 @@ const examService = instructorService;
 
 export {
   adminService,
-  authService, courseManagementService, examService,
+  authService,
+  courseManagementService,
+  examService,
   instructorService,
   questionBankManagementService,
-  questionBankService
+  questionBankService,
 };
-
