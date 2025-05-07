@@ -147,7 +147,7 @@ const instructorService = {
   createExam: async (examData) => {
     try {
       const response = await api.post('/instructor/exams', examData);
-      return { data: response.data }; // Wrap the response data to match expected format
+      return response.data ; // Wrap the response data to match expected format
     } catch (error) {
       throw new Error(error.response?.data?.error || 'Failed to create exam');
     }
@@ -547,12 +547,10 @@ const questionBankManagementService = {
 const examService = instructorService;
 
 export {
-    adminService,
-    authService,
-    examService,
-    instructorService,
-    questionBankManagementService,
-    questionBankService,
-    courseManagementService
+  adminService,
+  authService, courseManagementService, examService,
+  instructorService,
+  questionBankManagementService,
+  questionBankService
 };
 
