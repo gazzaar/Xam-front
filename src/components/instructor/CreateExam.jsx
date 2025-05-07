@@ -159,8 +159,8 @@ export default function CreateExam() {
       return false;
     }
     
-    if (!examData.subject_id) {
-      setError('Please select a subject');
+    if (!examData.course_id) {
+      setError('Please select a course');
       return false;
     }
     
@@ -241,11 +241,9 @@ export default function CreateExam() {
 
       // Create the exam
       const examResponse = await examService.createExam(formattedExamData);
+      console.log('Exam response:', examResponse);
       
       if (examResponse && examResponse.data && examResponse.data.exam_id) {
-        // Upload the student list
-        await examService.uploadAllowedStudents(examResponse.data.exam_id, studentFile);
-        
         // Navigate to the exams list page
         navigate('/instructor/exams');
       } else {
