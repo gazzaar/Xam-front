@@ -37,6 +37,12 @@ export default function AdminLayout() {
                   >
                     Instructors
                   </Link>
+                  <Link
+                    to="/admin/courses"
+                    className="text-gray-300 hover:bg-slate-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Courses
+                  </Link>
                 </div>
               </div>
             </div>
@@ -107,6 +113,12 @@ export default function AdminLayout() {
                 className="text-gray-300 hover:bg-slate-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
               >
                 Instructors
+              </Link>
+              <Link
+                to="/admin/courses"
+                className="text-gray-300 hover:bg-slate-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+              >
+                Courses
               </Link>
               <button
                 onClick={handleLogout}
