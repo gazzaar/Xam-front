@@ -1,7 +1,3 @@
-import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
-import SecurityIcon from '@mui/icons-material/Security';
-import SpeedIcon from '@mui/icons-material/Speed';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import {
   Timeline,
   TimelineConnector,
@@ -10,7 +6,7 @@ import {
   TimelineItem,
   TimelineSeparator,
 } from '@mui/lab';
-import { Box, Container, Grid, Paper, Typography } from '@mui/material';
+import { Box, Container, Paper, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
 import Header from './Header';
 
@@ -21,30 +17,6 @@ export default function LandingPage() {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   };
-
-  const benefits = [
-    {
-      title: 'Smart Question Bank',
-      description:
-        'AI-powered question management with automatic categorization',
-      icon: <IntegrationInstructionsIcon sx={{ fontSize: 40 }} />,
-    },
-    {
-      title: 'Real-time Monitoring',
-      description: 'Live exam monitoring and anti-cheating measures',
-      icon: <SpeedIcon sx={{ fontSize: 40 }} />,
-    },
-    {
-      title: 'Secure Platform',
-      description: 'Advanced security features to maintain exam integrity',
-      icon: <SecurityIcon sx={{ fontSize: 40 }} />,
-    },
-    {
-      title: 'Easy Setup',
-      description: 'Quick integration with your existing educational system',
-      icon: <VerifiedUserIcon sx={{ fontSize: 40 }} />,
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
@@ -185,41 +157,6 @@ export default function LandingPage() {
       {/* About/How It Works Section */}
       <div id="about" className="py-24 bg-slate-50 scroll-mt-20">
         <Container maxWidth="lg">
-          {/* Benefits Section */}
-          <Grid container spacing={6} sx={{ mb: 12 }} justifyContent="center">
-            {benefits.map((benefit, index) => (
-              <Grid item xs={12} md={5} key={index}>
-                <Paper
-                  sx={{
-                    p: 4,
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    textAlign: 'center',
-                    borderRadius: '0.75rem',
-                    bgcolor: 'white',
-                    transition: 'transform 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                    },
-                  }}
-                  elevation={0}
-                >
-                  <Box sx={{ color: 'primary.main', mb: 2 }}>
-                    {benefit.icon}
-                  </Box>
-                  <Typography variant="h5" sx={{ mb: 2 }}>
-                    {benefit.title}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    {benefit.description}
-                  </Typography>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
-
           {/* Timeline Section */}
           <Box sx={{ mb: 8 }}>
             <Typography
