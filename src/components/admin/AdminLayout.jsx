@@ -6,9 +6,11 @@ export default function AdminLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    authService.logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    const response = await authService.logout();
+    if (response.success) {
+      navigate('/login');
+    }
   };
 
   return (

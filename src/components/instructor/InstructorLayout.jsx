@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { authService } from '../../services/api';
 
 export default function InstructorLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const user = authService.getCurrentUser();
+  const userFirstName = localStorage.getItem('userFirstName');
+  const userLastName = localStorage.getItem('userLastName');
 
-  const handleLogout = () => {
-    authService.logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    const response = await authService.logout();
+    if (response.success) {
+      navigate('/login');
+    }
   };
 
   return (
@@ -26,35 +29,50 @@ export default function InstructorLayout() {
               </div>
               <div className="hidden md:block">
                 <div className="ml-10 flex items-baseline space-x-4">
-                  <Link
+                  <NavLink
                     to="/instructor/dashboard"
-                    className="text-gray-300 hover:bg-slate-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                    className={({ isActive }) =>
+                      `px-3 py-2 rounded-md text-sm font-medium ${
+                        isActive
+                          ? 'bg-gray-900 text-white'
+                          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                      }`
+                    }
                   >
                     Dashboard
-                  </Link>
-                  <Link
+                  </NavLink>
+                  <NavLink
                     to="/instructor/exams"
-                    className="text-gray-300 hover:bg-slate-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                    className={({ isActive }) =>
+                      `px-3 py-2 rounded-md text-sm font-medium ${
+                        isActive
+                          ? 'bg-gray-900 text-white'
+                          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                      }`
+                    }
                   >
-                    My Exams
-                  </Link>
-                  <Link
-                    to="/instructor/create-exam"
-                    className="text-gray-300 hover:bg-slate-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                    Exams
+                  </NavLink>
+                  <NavLink
+                    to="/instructor/question-bank"
+                    className={({ isActive }) =>
+                      `px-3 py-2 rounded-md text-sm font-medium ${
+                        isActive
+                          ? 'bg-gray-900 text-white'
+                          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                      }`
+                    }
                   >
-                    Create Exam
-                  </Link>
+                    Question Bank
+                  </NavLink>
                 </div>
               </div>
             </div>
             <div className="hidden md:block">
               <div className="ml-4 flex items-center md:ml-6">
-                <span className="text-gray-300 mr-4">
-                  {user?.first_name} {user?.last_name}
-                </span>
                 <button
                   onClick={handleLogout}
-                  className="text-gray-300 hover:bg-slate-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                  className="text-gray-300 hover:bg-slate-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium font-bold"
                 >
                   Logout
                 </button>
@@ -63,7 +81,7 @@ export default function InstructorLayout() {
             <div className="-mr-2 flex md:hidden">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="bg-slate-800 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white"
+                className="bg-slate-800 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white font-bold"
               >
                 <span className="sr-only">Open main menu</span>
                 {!isMobileMenuOpen ? (
@@ -106,26 +124,38 @@ export default function InstructorLayout() {
         {isMobileMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <Link
+              <NavLink
                 to="/instructor/dashboard"
-                className="text-gray-300 hover:bg-slate-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+                className={({ isActive }) =>
+                  `text-gray-300 hover:bg-slate-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium ${
+                    isActive ? 'bg-gray-900 text-white' : ''
+                  }`
+                }
               >
                 Dashboard
-              </Link>
-              <Link
+              </NavLink>
+              <NavLink
                 to="/instructor/exams"
-                className="text-gray-300 hover:bg-slate-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+                className={({ isActive }) =>
+                  `text-gray-300 hover:bg-slate-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium ${
+                    isActive ? 'bg-gray-900 text-white' : ''
+                  }`
+                }
               >
-                My Exams
-              </Link>
-              <Link
-                to="/instructor/create-exam"
-                className="text-gray-300 hover:bg-slate-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+                Exams
+              </NavLink>
+              <NavLink
+                to="/instructor/question-bank"
+                className={({ isActive }) =>
+                  `text-gray-300 hover:bg-slate-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium ${
+                    isActive ? 'bg-gray-900 text-white' : ''
+                  }`
+                }
               >
-                Create Exam
-              </Link>
+                Question Bank
+              </NavLink>
               <div className="text-gray-300 px-3 py-2">
-                {user?.first_name} {user?.last_name}
+                {userFirstName} {userLastName}
               </div>
               <button
                 onClick={handleLogout}

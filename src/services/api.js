@@ -17,7 +17,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Token expired or invalid
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Don't use window.location.href as it causes refresh
+      return Promise.reject({ ...error, shouldRedirect: true });
     }
     return Promise.reject(error);
   }
@@ -45,14 +46,28 @@ const authService = {
         localStorage.setItem('userRole', response.data.user.role);
         localStorage.setItem('userFirstName', response.data.user.first_name);
         localStorage.setItem('userLastName', response.data.user.last_name);
+        return {
+          success: true,
+          user: response.data.user,
+          token: response.data.token,
+        };
       }
       return {
-        success: true,
-        user: response.data.user,
-        token: response.data.token,
+        success: false,
+        message: 'Invalid response from server',
       };
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Login failed');
+      if (error.response?.data?.message) {
+        return {
+          success: false,
+          message: error.response.data.message,
+          status: error.response.status,
+        };
+      }
+      return {
+        success: false,
+        message: 'Network error or server is unreachable',
+      };
     }
   },
 
@@ -60,26 +75,23 @@ const authService = {
     try {
       // Call logout endpoint to invalidate session on server
       await api.post('/auth/logout');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
       // Clear all auth-related data from localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('userRole');
       localStorage.removeItem('userFirstName');
       localStorage.removeItem('userLastName');
 
-      // Force reload the page to clear any cached state
-      window.location.href = '/login';
-    }
-  },
-
-  registerInstructor: async (userData) => {
-    try {
-      const response = await api.post('/auth/register/instructor', userData);
-      return response.data;
+      // Return success without forcing page reload
+      return { success: true };
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Registration failed');
+      console.error('Logout error:', error);
+      // Even if the server call fails, we should still clear local storage
+      localStorage.removeItem('token');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userFirstName');
+      localStorage.removeItem('userLastName');
+
+      return { success: false, error: error.message };
     }
   },
 };
@@ -132,13 +144,203 @@ const adminService = {
     }
   },
 
-  deleteInstructor: async (instructorId) => {
+  deactivateInstructor: async (instructorId) => {
     try {
-      const response = await api.delete(`/admin/instructors/${instructorId}`);
+      const response = await api.put(
+        `/admin/instructors/${instructorId}/deactivate`
+      );
       return response.data;
     } catch (error) {
       throw new Error(
-        error.response?.data?.message || 'Failed to delete instructor'
+        error.response?.data?.message || 'Failed to deactivate instructor'
+      );
+    }
+  },
+
+  reactivateInstructor: async (instructorId) => {
+    try {
+      const response = await api.put(
+        `/admin/instructors/${instructorId}/reactivate`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to reactivate instructor'
+      );
+    }
+  },
+
+  deleteInstructor: async (instructorId) => {
+    try {
+      const response = await api.delete(
+        `/admin/instructors/${instructorId}/permanent`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message ||
+          'Failed to permanently delete instructor'
+      );
+    }
+  },
+
+  // Course Management
+  createCourse: async (courseData) => {
+    try {
+      const response = await api.post('/admin/courses', courseData);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to create course'
+      );
+    }
+  },
+
+  addChaptersToCourse: async (courseId, numChapters) => {
+    try {
+      const response = await api.post(`/admin/courses/${courseId}/chapters`, {
+        numChapters,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to add chapters to course'
+      );
+    }
+  },
+
+  getAllCourses: async () => {
+    try {
+      const response = await api.get('/admin/courses');
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to fetch courses'
+      );
+    }
+  },
+
+  updateCourse: async (courseId, courseData) => {
+    try {
+      const response = await api.put(`/admin/courses/${courseId}`, courseData);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to update course'
+      );
+    }
+  },
+
+  deleteCourse: async (courseId) => {
+    try {
+      const response = await api.delete(`/admin/courses/${courseId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to delete course'
+      );
+    }
+  },
+
+  // Course Assignment Management
+  assignInstructorToCourse: async (courseId, instructorId) => {
+    try {
+      const response = await api.post(
+        `/admin/courses/${courseId}/instructors/${instructorId}`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to assign instructor to course'
+      );
+    }
+  },
+
+  removeInstructorFromCourse: async (courseId, instructorId) => {
+    try {
+      const response = await api.delete(
+        `/admin/courses/${courseId}/instructors/${instructorId}`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message ||
+          'Failed to remove instructor from course'
+      );
+    }
+  },
+
+  // Question Bank Management
+  createQuestionBank: async (questionBankData) => {
+    try {
+      const response = await api.post(
+        '/admin/question-banks',
+        questionBankData
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to create question bank'
+      );
+    }
+  },
+
+  getQuestionBanks: async (courseId) => {
+    try {
+      const response = await api.get(
+        `/admin/courses/${courseId}/question-banks`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to fetch question banks'
+      );
+    }
+  },
+
+  updateQuestionBank: async (bankId, questionBankData) => {
+    try {
+      const response = await api.put(
+        `/admin/question-banks/${bankId}`,
+        questionBankData
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to update question bank'
+      );
+    }
+  },
+
+  deleteQuestionBank: async (bankId) => {
+    try {
+      const response = await api.delete(`/admin/question-banks/${bankId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to delete question bank'
+      );
+    }
+  },
+
+  createInstructor: async (instructorData) => {
+    try {
+      const response = await api.post('/admin/instructors', instructorData);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to create instructor'
+      );
+    }
+  },
+
+  getCourseDetails: async (courseId) => {
+    try {
+      const response = await api.get(`/admin/courses/${courseId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to fetch course details'
       );
     }
   },
@@ -268,10 +470,54 @@ const instructorService = {
 
   getCourses: async () => {
     try {
+      console.log('Token in request:', localStorage.getItem('token'));
       const response = await api.get('/instructor/courses');
+      console.log('API Response:', response);
       return response.data;
     } catch (error) {
+      console.error('Error in getCourses:', error.response || error);
       throw new Error(error.response?.data?.error || 'Failed to fetch courses');
+    }
+  },
+
+  // Chapter Management
+  addChaptersToCourse: async (courseId, { num_chapters }) => {
+    try {
+      const response = await api.post(
+        `/instructor/courses/${courseId}/chapters`,
+        {
+          num_chapters,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || 'Failed to add chapters');
+    }
+  },
+
+  getChaptersForCourse: async (courseId) => {
+    try {
+      const response = await api.get(
+        `/instructor/courses/${courseId}/chapters`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.error || 'Failed to fetch chapters'
+      );
+    }
+  },
+
+  deleteChapter: async (courseId, chapterId) => {
+    try {
+      const response = await api.delete(
+        `/instructor/courses/${courseId}/chapters/${chapterId}`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.error || 'Failed to delete chapter'
+      );
     }
   },
 
