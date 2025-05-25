@@ -16,7 +16,7 @@ export default function InstructorLayout() {
   };
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
       <nav className="bg-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -169,7 +169,7 @@ export default function InstructorLayout() {
       </nav>
 
       {/* Page Content */}
-      <main>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Outlet />
       </main>
     </div>

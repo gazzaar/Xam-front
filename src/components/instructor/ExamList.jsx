@@ -10,47 +10,52 @@ export default function ExamList() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
   useEffect(() => {
+    console.log('ExamList component mounted, fetching exams...');
     fetchExams();
+    // Set up periodic refresh every 30 seconds
+    const refreshInterval = setInterval(fetchExams, 30000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(refreshInterval);
   }, []);
 
-  const fetchExams = () => {
-    // Using static data for now
-    const staticExams = [
-      {
-        exam_id: 1,
-        title: 'Sample Exam 1',
-        description: 'This is a sample exam',
-        start_date: '2025-05-04T10:00:00',
-        end_date: '2025-05-04T12:00:00',
-        question_references: [
-          { chapter: 'Chapter 1', count: 5 },
-          { chapter: 'Chapter 2', count: 3 }
-        ]
-      },
-      {
-        exam_id: 2,
-        title: 'Sample Exam 2',
-        description: 'Another sample exam',
-        start_date: '2025-05-05T14:00:00',
-        end_date: '2025-05-05T16:00:00',
-        question_references: [
-          { chapter: 'Chapter 3', count: 4 },
-          { chapter: 'Chapter 4', count: 6 }
-        ]
+  const fetchExams = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      console.log('Calling examService.getExams()...');
+      const response = await examService.getExams();
+      console.log('Fetched exams response:', response);
+
+      if (Array.isArray(response)) {
+        console.log(`Successfully fetched ${response.length} exams`);
+        setExams(response);
+      } else {
+        console.error('Unexpected response format:', response);
+        setError('Received invalid data format from server');
+        setExams([]);
       }
-    ];
-    setExams(staticExams);
-    setIsLoading(false);
+    } catch (err) {
+      console.error('Error fetching exams:', err);
+      setError(err.message || 'Failed to fetch exams');
+      setExams([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDelete = async (examId) => {
     try {
+      setIsLoading(true);
       await examService.deleteExam(examId);
-      fetchExams();
       setShowDeleteConfirm(null);
+      // Refresh the exam list
+      await fetchExams();
     } catch (err) {
-      setError(err.message || 'Failed to delete exam');
       console.error('Error deleting exam:', err);
+      setError(err.message || 'Failed to delete exam');
+    } finally {
+      setIsLoading(false);
       setShowDeleteConfirm(null);
     }
   };
@@ -101,14 +106,14 @@ export default function ExamList() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-slate-700"></div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div>
       {error && (
         <div className="mb-4 rounded-md bg-red-50 p-4 text-red-700">
           {error}
@@ -162,22 +167,40 @@ export default function ExamList() {
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                >
                   Exam Name
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                >
                   Status
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                >
                   Start Date
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                >
                   End Date
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                >
                   Questions
                 </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider"
+                >
                   Actions
                 </th>
               </tr>
@@ -185,20 +208,36 @@ export default function ExamList() {
             <tbody className="bg-white divide-y divide-slate-200">
               {exams.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-sm text-slate-500">
+                  <td
+                    colSpan="6"
+                    className="px-6 py-4 text-center text-sm text-slate-500"
+                  >
                     No exams found. Click "Create New Exam" to get started.
                   </td>
                 </tr>
               ) : (
                 exams.map((exam) => (
-                  <tr key={exam.exam_id} className="hover:bg-slate-50 transition-colors duration-150">
+                  <tr
+                    key={exam.exam_id}
+                    className="hover:bg-slate-50 transition-colors duration-150"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-slate-800">{exam.title}</div>
-                      <div className="text-sm text-slate-500">{exam.description}</div>
+                      <div className="text-sm font-medium text-slate-800">
+                        {exam.exam_name}
+                      </div>
+                      <div className="text-sm text-slate-500">
+                        {exam.description}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(exam.start_date, exam.end_date)}`}>
-                        {getExamStatus(exam.start_date, exam.end_date)}
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(
+                          exam.start_date,
+                          exam.end_date
+                        )}`}
+                      >
+                        {exam.status ||
+                          getExamStatus(exam.start_date, exam.end_date)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
@@ -209,23 +248,46 @@ export default function ExamList() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-slate-600">
-                        {exam.question_references && exam.question_references.map((ref, index) => (
-                          <div key={index} className="flex items-center space-x-1 mb-1">
-                            <span className="font-medium">{ref.chapter}:</span>
-                            <span>{ref.count} questions</span>
-                          </div>
-                        ))}
+                        {exam.question_references &&
+                          exam.question_references.map((ref, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center space-x-1 mb-1"
+                            >
+                              <span className="font-medium">
+                                {ref.chapter}:
+                              </span>
+                              <span>{ref.count} questions</span>
+                            </div>
+                          ))}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
-                        onClick={() => navigate(`/instructor/exams/${exam.exam_id}`)}
+                        onClick={() =>
+                          navigate(`/instructor/exams/${exam.exam_id}`)
+                        }
                         className="text-slate-600 hover:text-slate-900 mr-4 transition-colors duration-200"
                       >
                         <span className="flex items-center">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          <svg
+                            className="w-4 h-4 mr-1"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
                           </svg>
                           View
                         </span>
@@ -236,8 +298,18 @@ export default function ExamList() {
                           className="text-red-600 hover:text-red-900 transition-colors duration-200"
                         >
                           <span className="flex items-center">
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg
+                              className="w-4 h-4 mr-1"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                             Delete
                           </span>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { examService, instructorService } from '../../services/api';
 
@@ -23,8 +23,8 @@ export default function CreateExam() {
     difficultyDistribution: {
       easy: 30,
       medium: 50,
-      hard: 20
-    }
+      hard: 20,
+    },
   });
   const [studentFile, setStudentFile] = useState(null);
 
@@ -45,9 +45,11 @@ export default function CreateExam() {
 
   const fetchQuestionBanks = async (courseId) => {
     if (!courseId) return;
-    
+
     try {
-      const response = await instructorService.getQuestionBanksByCourse(courseId);
+      const response = await instructorService.getQuestionBanksByCourse(
+        courseId
+      );
       setQuestionBanks(response);
     } catch (error) {
       console.error('Error fetching question banks:', error);
@@ -60,22 +62,24 @@ export default function CreateExam() {
     const characters = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'; // Removed similar looking characters
     let result = '';
     for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * characters.length));
+      result += characters.charAt(
+        Math.floor(Math.random() * characters.length)
+      );
     }
     return result;
   }
 
   const handleExamDataChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'course_id') {
       // When course changes, fetch question banks for that course
       fetchQuestionBanks(value);
       // Reset question bank selection
-      setExamData(prev => ({
+      setExamData((prev) => ({
         ...prev,
         [name]: value,
-        question_bank_id: ''
+        question_bank_id: '',
       }));
     } else {
       setExamData((prev) => ({
@@ -88,9 +92,9 @@ export default function CreateExam() {
   const handleChapterChange = (index, field, value) => {
     setExamData((prev) => {
       const newDistribution = [...prev.chapterDistribution];
-      newDistribution[index] = { 
-        ...newDistribution[index], 
-        [field]: value 
+      newDistribution[index] = {
+        ...newDistribution[index],
+        [field]: value,
       };
       return { ...prev, chapterDistribution: newDistribution };
     });
@@ -99,27 +103,32 @@ export default function CreateExam() {
   const handleDifficultyChange = (difficulty, value) => {
     // Ensure the value is a number between 0 and 100
     const numValue = Math.min(100, Math.max(0, parseInt(value) || 0));
-    
+
     setExamData((prev) => ({
       ...prev,
       difficultyDistribution: {
         ...prev.difficultyDistribution,
-        [difficulty]: numValue
-      }
+        [difficulty]: numValue,
+      },
     }));
   };
 
   const addChapter = () => {
     setExamData((prev) => ({
       ...prev,
-      chapterDistribution: [...prev.chapterDistribution, { chapter: '', questionCount: 5 }]
+      chapterDistribution: [
+        ...prev.chapterDistribution,
+        { chapter: '', questionCount: 5 },
+      ],
     }));
   };
 
   const removeChapter = (index) => {
     setExamData((prev) => ({
       ...prev,
-      chapterDistribution: prev.chapterDistribution.filter((_, i) => i !== index)
+      chapterDistribution: prev.chapterDistribution.filter(
+        (_, i) => i !== index
+      ),
     }));
   };
 
@@ -135,9 +144,9 @@ export default function CreateExam() {
   };
 
   const regenerateExamLink = () => {
-    setExamData(prev => ({
+    setExamData((prev) => ({
       ...prev,
-      exam_link_id: generateRandomCode(8)
+      exam_link_id: generateRandomCode(8),
     }));
   };
 
@@ -158,57 +167,59 @@ export default function CreateExam() {
       setError('Duration must be at least 1 minute');
       return false;
     }
-    
+
     if (!examData.course_id) {
       setError('Please select a course');
       return false;
     }
-    
+
     if (!examData.question_bank_id) {
       setError('Please select a question bank');
       return false;
     }
-    
+
     if (examData.total_questions < 1) {
       setError('Total questions must be at least 1');
       return false;
     }
-    
+
     // Validate chapter distribution
-    if (examData.chapterDistribution.some(item => !item.chapter.trim())) {
+    if (examData.chapterDistribution.some((item) => !item.chapter.trim())) {
       setError('Please fill in all chapter names or remove empty ones');
       return false;
     }
-    
-    if (examData.chapterDistribution.some(item => item.questionCount < 1)) {
+
+    if (examData.chapterDistribution.some((item) => item.questionCount < 1)) {
       setError('Each chapter must have at least 1 question');
       return false;
     }
-    
+
     // Validate difficulty distribution
-    const totalDifficulty = 
-      examData.difficultyDistribution.easy + 
-      examData.difficultyDistribution.medium + 
+    const totalDifficulty =
+      examData.difficultyDistribution.easy +
+      examData.difficultyDistribution.medium +
       examData.difficultyDistribution.hard;
-    
+
     if (totalDifficulty !== 100) {
       setError('Difficulty distribution must add up to 100%');
       return false;
     }
-    
+
     // Validate student file
     if (!studentFile) {
-      setError('Please upload a CSV file with the list of students allowed to take this exam');
+      setError(
+        'Please upload a CSV file with the list of students allowed to take this exam'
+      );
       return false;
     }
-    
+
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateExamData()) return;
-    
+
     setError('');
     setIsLoading(true);
 
@@ -223,26 +234,26 @@ export default function CreateExam() {
           ? new Date(examData.end_date).toISOString()
           : null,
         // Format chapter distribution for the API
-        chapterDistribution: examData.chapterDistribution.map(item => ({
+        chapterDistribution: examData.chapterDistribution.map((item) => ({
           chapter: item.chapter,
-          count: parseInt(item.questionCount)
+          count: parseInt(item.questionCount),
         })),
         // Include difficulty distribution
         difficultyDistribution: {
           easy: examData.difficultyDistribution.easy,
           medium: examData.difficultyDistribution.medium,
-          hard: examData.difficultyDistribution.hard
+          hard: examData.difficultyDistribution.hard,
         },
         // Include course and question bank IDs
         course_id: examData.course_id,
         question_bank_id: examData.question_bank_id,
-        total_questions: parseInt(examData.total_questions)
+        total_questions: parseInt(examData.total_questions),
       };
 
       // Create the exam
       const examResponse = await examService.createExam(formattedExamData);
       console.log('Exam response:', examResponse);
-      
+
       if (examResponse && examResponse.data && examResponse.data.exam_id) {
         // Navigate to the exams list page
         navigate('/instructor/exams');
@@ -263,7 +274,9 @@ export default function CreateExam() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mx-auto max-w-3xl">
-        <h1 className="mb-8 text-3xl font-bold text-slate-800">Create New Exam</h1>
+        <h1 className="mb-8 text-3xl font-bold text-slate-800">
+          Create New Exam
+        </h1>
 
         {error && (
           <div className="mb-4 rounded-md bg-red-50 p-4 text-red-700">
@@ -273,8 +286,10 @@ export default function CreateExam() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-white shadow rounded-lg p-6 border border-slate-200">
-            <h2 className="text-xl font-semibold text-slate-800 mb-4">Exam Details</h2>
-            
+            <h2 className="text-xl font-semibold text-slate-800 mb-4">
+              Exam Details
+            </h2>
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700">
@@ -352,8 +367,10 @@ export default function CreateExam() {
           </div>
 
           <div className="bg-white shadow rounded-lg p-6 border border-slate-200">
-            <h2 className="text-xl font-semibold text-slate-800 mb-4">Exam Content</h2>
-            
+            <h2 className="text-xl font-semibold text-slate-800 mb-4">
+              Exam Content
+            </h2>
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -369,14 +386,14 @@ export default function CreateExam() {
                     required
                   >
                     <option value="">Select a course</option>
-                    {courses.map(course => (
+                    {courses.map((course) => (
                       <option key={course.course_id} value={course.course_id}>
                         {course.course_name}
                       </option>
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
                     Question Bank <span className="text-red-600">*</span>
@@ -391,15 +408,18 @@ export default function CreateExam() {
                     disabled={!examData.course_id}
                   >
                     <option value="">Select a question bank</option>
-                    {questionBanks.map(bank => (
-                      <option key={bank.question_bank_id} value={bank.question_bank_id}>
+                    {questionBanks.map((bank) => (
+                      <option
+                        key={bank.question_bank_id}
+                        value={bank.question_bank_id}
+                      >
                         {bank.bank_name}
                       </option>
                     ))}
                   </select>
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-slate-700">
                   Total Questions <span className="text-red-600">*</span>
@@ -415,7 +435,7 @@ export default function CreateExam() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Chapter Distribution <span className="text-red-600">*</span>
@@ -426,7 +446,9 @@ export default function CreateExam() {
                       <input
                         type="text"
                         value={item.chapter}
-                        onChange={(e) => handleChapterChange(index, 'chapter', e.target.value)}
+                        onChange={(e) =>
+                          handleChapterChange(index, 'chapter', e.target.value)
+                        }
                         placeholder="Chapter name"
                         className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
                           focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
@@ -434,7 +456,13 @@ export default function CreateExam() {
                       <input
                         type="number"
                         value={item.questionCount}
-                        onChange={(e) => handleChapterChange(index, 'questionCount', e.target.value)}
+                        onChange={(e) =>
+                          handleChapterChange(
+                            index,
+                            'questionCount',
+                            e.target.value
+                          )
+                        }
                         min="1"
                         className="w-20 px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
                           focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
@@ -445,8 +473,18 @@ export default function CreateExam() {
                           onClick={() => removeChapter(index)}
                           className="p-2 text-red-500 hover:text-red-700 transition-colors duration-200"
                         >
-                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <svg
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
                           </svg>
                         </button>
                       )}
@@ -458,25 +496,40 @@ export default function CreateExam() {
                     className="inline-flex items-center px-3 py-1.5 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-slate-50
                       focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
                   >
-                    <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    <svg
+                      className="h-4 w-4 mr-1"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
                     </svg>
                     Add Chapter
                   </button>
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Difficulty Distribution (%) <span className="text-red-600">*</span>
+                  Difficulty Distribution (%){' '}
+                  <span className="text-red-600">*</span>
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm text-slate-600 mb-1">Easy</label>
+                    <label className="block text-sm text-slate-600 mb-1">
+                      Easy
+                    </label>
                     <input
                       type="number"
                       value={examData.difficultyDistribution.easy}
-                      onChange={(e) => handleDifficultyChange('easy', e.target.value)}
+                      onChange={(e) =>
+                        handleDifficultyChange('easy', e.target.value)
+                      }
                       min="0"
                       max="100"
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
@@ -484,11 +537,15 @@ export default function CreateExam() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-600 mb-1">Medium</label>
+                    <label className="block text-sm text-slate-600 mb-1">
+                      Medium
+                    </label>
                     <input
                       type="number"
                       value={examData.difficultyDistribution.medium}
-                      onChange={(e) => handleDifficultyChange('medium', e.target.value)}
+                      onChange={(e) =>
+                        handleDifficultyChange('medium', e.target.value)
+                      }
                       min="0"
                       max="100"
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
@@ -496,11 +553,15 @@ export default function CreateExam() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-600 mb-1">Hard</label>
+                    <label className="block text-sm text-slate-600 mb-1">
+                      Hard
+                    </label>
                     <input
                       type="number"
                       value={examData.difficultyDistribution.hard}
-                      onChange={(e) => handleDifficultyChange('hard', e.target.value)}
+                      onChange={(e) =>
+                        handleDifficultyChange('hard', e.target.value)
+                      }
                       min="0"
                       max="100"
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
@@ -509,15 +570,21 @@ export default function CreateExam() {
                   </div>
                 </div>
                 <p className="mt-1 text-sm text-slate-500">
-                  Total: {examData.difficultyDistribution.easy + examData.difficultyDistribution.medium + examData.difficultyDistribution.hard}% (must equal 100%)
+                  Total:{' '}
+                  {examData.difficultyDistribution.easy +
+                    examData.difficultyDistribution.medium +
+                    examData.difficultyDistribution.hard}
+                  % (must equal 100%)
                 </p>
               </div>
             </div>
           </div>
 
           <div className="bg-white shadow rounded-lg p-6 border border-slate-200">
-            <h2 className="text-xl font-semibold text-slate-800 mb-4">Exam Access</h2>
-            
+            <h2 className="text-xl font-semibold text-slate-800 mb-4">
+              Exam Access
+            </h2>
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700">
@@ -536,26 +603,46 @@ export default function CreateExam() {
                     className="inline-flex items-center px-3 py-2 border border-l-0 border-slate-300 rounded-r-md bg-slate-50 text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
                     title="Generate new link"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
                     </svg>
                   </button>
                 </div>
                 <p className="mt-1 text-sm text-slate-500">
-                  This is the link students will use to access the exam. Students will need to enter their university ID to verify access.
+                  This is the link students will use to access the exam.
+                  Students will need to enter their university ID to verify
+                  access.
                 </p>
               </div>
-              
+
               <div className="flex items-center">
                 <input
                   id="is_randomized"
                   name="is_randomized"
                   type="checkbox"
                   checked={examData.is_randomized}
-                  onChange={(e) => setExamData(prev => ({ ...prev, is_randomized: e.target.checked }))}
+                  onChange={(e) =>
+                    setExamData((prev) => ({
+                      ...prev,
+                      is_randomized: e.target.checked,
+                    }))
+                  }
                   className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300 rounded"
                 />
-                <label htmlFor="is_randomized" className="ml-2 block text-sm text-slate-700">
+                <label
+                  htmlFor="is_randomized"
+                  className="ml-2 block text-sm text-slate-700"
+                >
                   Randomize question order for each student
                 </label>
               </div>
@@ -563,11 +650,14 @@ export default function CreateExam() {
           </div>
 
           <div className="bg-white shadow rounded-lg p-6 border border-slate-200">
-            <h2 className="text-xl font-semibold text-slate-800 mb-4">Student Access</h2>
-            
+            <h2 className="text-xl font-semibold text-slate-800 mb-4">
+              Student Access
+            </h2>
+
             <div className="space-y-2">
               <label className="block text-sm font-medium text-slate-700">
-                Upload Student List (CSV) <span className="text-red-600">*</span>
+                Upload Student List (CSV){' '}
+                <span className="text-red-600">*</span>
               </label>
               <input
                 type="file"
@@ -577,35 +667,64 @@ export default function CreateExam() {
                 required
               />
               <p className="text-sm text-slate-500">
-                Upload a CSV file containing the list of students allowed to take this exam.
+                Upload a CSV file containing the list of students allowed to
+                take this exam.
               </p>
               <div className="mt-2 p-3 bg-slate-50 rounded-md border border-slate-200">
-                <h3 className="text-sm font-medium text-slate-700 mb-1">CSV Format:</h3>
-                <p className="text-xs text-slate-600 mb-2">Your CSV file should have the following columns:</p>
+                <h3 className="text-sm font-medium text-slate-700 mb-1">
+                  CSV Format:
+                </h3>
+                <p className="text-xs text-slate-600 mb-2">
+                  Your CSV file should have the following columns:
+                </p>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-slate-200 border border-slate-200 rounded-md">
                     <thead className="bg-slate-100">
                       <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-700">Column</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-700">Description</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-700">Example</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-700">
+                          Column
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-700">
+                          Description
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-700">
+                          Example
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-200">
                       <tr>
-                        <td className="px-3 py-2 text-xs text-slate-700">student_id</td>
-                        <td className="px-3 py-2 text-xs text-slate-600">University ID number</td>
-                        <td className="px-3 py-2 text-xs text-slate-600">12345678</td>
+                        <td className="px-3 py-2 text-xs text-slate-700">
+                          student_id
+                        </td>
+                        <td className="px-3 py-2 text-xs text-slate-600">
+                          University ID number
+                        </td>
+                        <td className="px-3 py-2 text-xs text-slate-600">
+                          12345678
+                        </td>
                       </tr>
                       <tr>
-                        <td className="px-3 py-2 text-xs text-slate-700">email</td>
-                        <td className="px-3 py-2 text-xs text-slate-600">Student email address</td>
-                        <td className="px-3 py-2 text-xs text-slate-600">student@university.edu</td>
+                        <td className="px-3 py-2 text-xs text-slate-700">
+                          email
+                        </td>
+                        <td className="px-3 py-2 text-xs text-slate-600">
+                          Student email address
+                        </td>
+                        <td className="px-3 py-2 text-xs text-slate-600">
+                          student@university.edu
+                        </td>
                       </tr>
                       <tr>
-                        <td className="px-3 py-2 text-xs text-slate-700">name</td>
-                        <td className="px-3 py-2 text-xs text-slate-600">Student full name</td>
-                        <td className="px-3 py-2 text-xs text-slate-600">John Smith</td>
+                        <td className="px-3 py-2 text-xs text-slate-700">
+                          name
+                        </td>
+                        <td className="px-3 py-2 text-xs text-slate-600">
+                          Student full name
+                        </td>
+                        <td className="px-3 py-2 text-xs text-slate-600">
+                          John Smith
+                        </td>
                       </tr>
                     </tbody>
                   </table>
