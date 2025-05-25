@@ -6,16 +6,19 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <header className="relative mt-4 ">
+    <header className="relative py-6 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link to="/" className="flex items-center gap-1 text-slate-800">
-              <h1 className="font-expletus text-4xl sm:text-6xl font-semibold transition-transform rotate-180">
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-slate-800 hover:opacity-80 transition-opacity"
+            >
+              <h1 className="font-expletus text-5xl sm:text-7xl font-semibold transition-transform rotate-180">
                 X
               </h1>
-              <span className="font-D-dinExp text-2xl sm:text-4xl self-end tracking-[1.5px]">
+              <span className="font-D-dinExp text-3xl sm:text-5xl self-end tracking-[1.5px]">
                 am
               </span>
             </Link>
@@ -25,15 +28,9 @@ const Header = () => {
           <div className="hidden sm:flex sm:items-center sm:gap-4">
             <button
               onClick={() => navigate('/login')}
-              className="text-sm text-white rounded-md border-none outline-solid bg-slate-700 hover:bg-slate-600 transition-all duration-200 px-6 py-2"
+              className="text-base font-medium text-white rounded-xl bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 transition-all duration-200 px-8 py-3 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
             >
               Login
-            </button>
-            <button
-              onClick={() => navigate('/signup')}
-              className="text-sm border border-slate-300  font-medium rounded-md text-slate-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 px-6 py-2"
-            >
-              Sign up
             </button>
           </div>
 
@@ -41,7 +38,7 @@ const Header = () => {
           <div className="sm:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-slate-700 hover:text-slate-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-slate-500"
+              className="inline-flex items-center justify-center p-2 rounded-lg text-slate-700 hover:text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors"
               aria-expanded="false"
             >
               <span className="sr-only">Open main menu</span>
@@ -85,25 +82,16 @@ const Header = () => {
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="sm:hidden absolute w-full bg-white shadow-lg z-50">
-          <div className="pt-2 pb-3 space-y-1">
+        <div className="sm:hidden absolute w-full bg-white shadow-lg z-50 mt-4 rounded-b-2xl border-t border-slate-100">
+          <div className="p-4">
             <button
               onClick={() => {
                 navigate('/login');
                 setIsMobileMenuOpen(false);
               }}
-              className="w-full text-left block px-4 py-2 text-base font-medium text-white bg-slate-700 hover:bg-slate-600 transition-all duration-200"
+              className="w-full text-center px-4 py-3 text-base font-medium text-white rounded-xl bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 transition-all duration-200 shadow-md hover:shadow-lg"
             >
               Login
-            </button>
-            <button
-              onClick={() => {
-                navigate('/signup');
-                setIsMobileMenuOpen(false);
-              }}
-              className="w-full text-left block px-4 py-2 text-base font-medium text-slate-700 hover:bg-slate-700 hover:text-white transition-all duration-200 border-t border-gray-200"
-            >
-              Sign up
             </button>
           </div>
         </div>
