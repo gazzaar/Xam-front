@@ -4,9 +4,9 @@ import { adminService } from '../../services/api';
 export default function Dashboard() {
   const [stats, setStats] = useState({
     totalInstructors: 0,
-    pendingInstructors: 0,
     totalExams: 0,
     activeExams: 0,
+    pendingExams: 0,
   });
   const [instructors, setInstructors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,37 +24,18 @@ export default function Dashboard() {
         adminService.getAllInstructors(),
       ]);
 
-      setStats(statsData);
+      setStats({
+        totalInstructors: statsData.data.totalInstructors,
+        totalExams: statsData.data.totalExams,
+        activeExams: statsData.data.activeExams,
+        pendingExams: statsData.data.pendingExams,
+      });
       setInstructors(instructorsData.data || []);
     } catch (err) {
       setError('Failed to load dashboard data');
       console.error('Dashboard error:', err);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleApproveInstructor = async (instructorId) => {
-    try {
-      await adminService.approveInstructor(instructorId);
-      // Refresh dashboard data after approval
-      fetchDashboardData();
-    } catch (err) {
-      setError('Failed to approve instructor');
-      console.error('Approval error:', err);
-    }
-  };
-
-  const handleDeleteInstructor = async (instructorId) => {
-    if (window.confirm('Are you sure you want to delete this instructor?')) {
-      try {
-        await adminService.deleteInstructor(instructorId);
-        // Refresh dashboard data after deletion
-        fetchDashboardData();
-      } catch (err) {
-        setError('Failed to delete instructor');
-        console.error('Deletion error:', err);
-      }
     }
   };
 
@@ -130,38 +111,6 @@ export default function Dashboard() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Pending Approvals
-                    </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {stats.pendingInstructors}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-6 w-6 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
                       d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                     />
                   </svg>
@@ -194,7 +143,7 @@ export default function Dashboard() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth="2"
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
                 </div>
@@ -211,6 +160,38 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-6 w-6 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Upcoming Exams
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {stats.pendingExams}
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Instructors Table */}
@@ -218,7 +199,7 @@ export default function Dashboard() {
           <div className="px-4 py-5 sm:px-6">
             <h2 className="text-lg font-medium text-gray-900">Instructors</h2>
             <p className="mt-1 text-sm text-gray-500">
-              List of all instructors and their approval status
+              Overview of all instructors in the system
             </p>
           </div>
           <div className="border-t border-gray-200">
@@ -233,13 +214,10 @@ export default function Dashboard() {
                       Email
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Department
+                      Active Courses
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -258,41 +236,18 @@ export default function Dashboard() {
                         {instructor.email}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {instructor.department}
+                        {instructor.active_courses || 0}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            instructor.is_approved
+                            instructor.is_active
                               ? 'bg-green-100 text-green-800'
                               : 'bg-yellow-100 text-yellow-800'
                           }`}
                         >
-                          {instructor.is_approved ? 'Approved' : 'Pending'}
+                          {instructor.is_active ? 'Active' : 'Inactive'}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          {!instructor.is_approved ? (
-                            <button
-                              onClick={() =>
-                                handleApproveInstructor(instructor.user_id)
-                              }
-                              className="text-slate-600 hover:text-slate-900"
-                            >
-                              Approve
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() =>
-                                handleDeleteInstructor(instructor.user_id)
-                              }
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              Delete
-                            </button>
-                          )}
-                        </div>
                       </td>
                     </tr>
                   ))}

@@ -151,48 +151,54 @@ export default function CourseDetails() {
               All question banks in this course
             </p>
           </div>
-          <div className="px-4 py-5 sm:px-6">
-            {course.question_banks.map((bank) => (
-              <div
-                key={bank.question_bank_id}
-                className="mb-6 last:mb-0 border-b border-gray-200 pb-6 last:border-0"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-gray-900">
-                    {bank.bank_name}
-                  </h3>
-                  <span className="text-sm text-gray-500">
-                    Questions: {bank.question_count}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 mb-2">{bank.description}</p>
-                <p className="text-sm text-gray-500">
-                  Created by: {bank.created_by_first_name}{' '}
-                  {bank.created_by_last_name}
-                </p>
-                {bank.questions && (
-                  <div className="mt-4 pl-4 border-l-2 border-gray-200">
-                    {bank.questions.map((question) => (
-                      <div
-                        key={question.question_id}
-                        className="mb-3 last:mb-0"
-                      >
-                        <p className="text-sm font-medium text-gray-900">
-                          {question.question_text.substring(0, 100)}
-                          {question.question_text.length > 100 ? '...' : ''}
-                        </p>
-                        <div className="flex items-center mt-1 text-xs text-gray-500">
-                          <span className="mr-3">
-                            Type: {question.question_type}
-                          </span>
-                          <span>Points: {question.points}</span>
-                        </div>
+          <div className="px-4 sm:px-6 overflow-hidden">
+            <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
+              <div className="py-5">
+                {course.question_banks.map((bank) => (
+                  <div
+                    key={bank.question_bank_id}
+                    className="mb-6 last:mb-0 border-b border-gray-200 pb-6 last:border-0"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium text-gray-900">
+                        {bank.bank_name}
+                      </h3>
+                      <span className="text-sm text-gray-500">
+                        Questions: {bank.question_count}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-2">
+                      {bank.description}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Created by: {bank.created_by_first_name}{' '}
+                      {bank.created_by_last_name}
+                    </p>
+                    {bank.questions && (
+                      <div className="mt-4 pl-4 border-l-2 border-gray-200">
+                        {bank.questions.map((question) => (
+                          <div
+                            key={question.question_id}
+                            className="mb-3 last:mb-0"
+                          >
+                            <p className="text-sm font-medium text-gray-900">
+                              {question.question_text.substring(0, 100)}
+                              {question.question_text.length > 100 ? '...' : ''}
+                            </p>
+                            <div className="flex items-center mt-1 text-xs text-gray-500">
+                              <span className="mr-3">
+                                Type: {question.question_type}
+                              </span>
+                              <span>Points: {question.points}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
 

@@ -1,9 +1,41 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { instructorService } from '../../services/api';
 
+// Add custom scrollbar styles
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+`;
+
 export default function QuestionBank() {
+  // Add style tag to head
+  useEffect(() => {
+    const styleTag = document.createElement('style');
+    styleTag.textContent = scrollbarStyles;
+    document.head.appendChild(styleTag);
+
+    return () => {
+      document.head.removeChild(styleTag);
+    };
+  }, []);
+
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [courses, setCourses] = useState([]);
@@ -11,26 +43,28 @@ export default function QuestionBank() {
   const [questions, setQuestions] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedBank, setSelectedBank] = useState(null);
-  const [showAddCourseForm, setShowAddCourseForm] = useState(false);
+  const [courseChapters, setCourseChapters] = useState([]);
   const [showAddBankForm, setShowAddBankForm] = useState(false);
   const [showAddQuestionForm, setShowAddQuestionForm] = useState(false);
   const [showEditQuestionForm, setShowEditQuestionForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
-  const [deleteConfirmation, setDeleteConfirmation] = useState({ show: false, type: '', id: null });
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    show: false,
+    type: '', // 'questionBank' or 'question'
+    id: null,
+    item: null, // Store the full item for display purposes
+  });
   const [questionFormData, setQuestionFormData] = useState({
     question_text: '',
     question_type: 'multiple-choice',
-    options: [{ text: '', is_correct: false }],
+    options: Array(4)
+      .fill()
+      .map(() => ({ text: '', is_correct: false })),
     explanation: '',
     points: 1,
     image_url: '',
     chapter: '',
-    difficulty: 'medium'
-  });
-  const [courseFormData, setCourseFormData] = useState({
-    course_name: '',
-    course_code: '',
-    description: '',
+    difficulty: 'medium',
   });
   const [bankFormData, setBankFormData] = useState({
     bank_name: '',
@@ -46,98 +80,10 @@ export default function QuestionBank() {
     fetchCourses();
   }, [navigate]);
 
-  const handleCreateCourse = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      const response = await instructorService.createCourse(courseFormData);
-      setShowAddCourseForm(false);
-      setCourseFormData({ course_name: '', course_code: '', description: '' });
-      // Refresh courses list
-      await fetchCourses();
-      toast.success('Course created successfully');
-    } catch (error) {
-      console.error('Error creating Course:', error);
-      toast.error(error.message || 'Failed to create Course');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAddQuestion = async (e) => {
-    e.preventDefault();
-    if (!selectedBank) {
-      toast.error('Please select a question bank first');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const questionData = {
-        question_text: questionFormData.question_text,
-        question_type: questionFormData.question_type,
-        options: questionFormData.options,
-        explanation: questionFormData.explanation,
-        points: questionFormData.points,
-        image_url: questionFormData.image_url,
-        chapter: questionFormData.chapter,
-        difficulty: questionFormData.difficulty
-      };
-      
-      await instructorService.addQuestionsToQuestionBank(selectedBank.question_bank_id, [questionData]);
-      setShowAddQuestionForm(false);
-      setQuestionFormData({
-        question_text: '',
-        question_type: 'multiple-choice',
-        options: [{ text: '', is_correct: false }],
-        explanation: '',
-        points: 1,
-        image_url: '',
-        chapter: '',
-        difficulty: 'medium'
-      });
-      // Refresh questions list
-      await fetchQuestions(selectedBank.question_bank_id);
-      toast.success('Question added successfully');
-    } catch (error) {
-      console.error('Error adding question:', error);
-      toast.error(error.message || 'Failed to add question');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCreateQuestionBank = async (e) => {
-    e.preventDefault();
-    if (!selectedCourse) {
-      toast.error('Please select a course first');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      // Pass course_id as a separate parameter and question bank data as an object
-      await instructorService.createQuestionBank(
-        selectedCourse.course_id,
-        {
-          bank_name: bankFormData.bank_name,
-          description: bankFormData.description
-        }
-      );
-      setShowAddBankForm(false);
-      setBankFormData({ bank_name: '', description: '' });
-      // Refresh question banks list
-      await fetchQuestionBanks(selectedCourse.course_id);
-      toast.success('Question bank created successfully');
-    } catch (error) {
-      console.error('Error creating question bank:', error);
-      toast.error(error.message || 'Failed to create question bank');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const fetchCourses = async () => {
     try {
       const response = await instructorService.getCourses();
+      console.log('Courses response from backend:', response);
       setCourses(response);
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -148,33 +94,19 @@ export default function QuestionBank() {
     }
   };
 
-  const fetchQuestionBanks = async (courseId) => {
-    try {
-      const response = await instructorService.getQuestionBanksByCourse(courseId);
-      setQuestionBanks(response);
-    } catch (error) {
-      console.error('Error fetching question banks:', error);
-      toast.error('Failed to fetch question banks');
-      if (error.response?.status === 401) {
-        navigate('/login');
-      }
-    }
-  };
-
-  const fetchQuestions = async (questionBankId) => {
-    try {
-      const response = await instructorService.getQuestionsInQuestionBank(questionBankId);
-      setQuestions(response);
-    } catch (error) {
-      console.error('Error fetching questions:', error);
-      toast.error('Failed to fetch questions');
-    }
-  };
-
-  const handleCourseSelect = (course) => {
+  const handleCourseSelect = async (course) => {
     setSelectedCourse(course);
     setSelectedBank(null);
-    fetchQuestionBanks(course.course_id);
+    try {
+      const chapters = await instructorService.getChaptersForCourse(
+        course.course_id
+      );
+      setCourseChapters(chapters);
+      await fetchQuestionBanks(course.course_id);
+    } catch (error) {
+      console.error('Error fetching chapters:', error);
+      toast.error('Failed to fetch course chapters');
+    }
   };
 
   const handleBankSelect = async (bank) => {
@@ -194,9 +126,11 @@ export default function QuestionBank() {
     // Format options for the form - combine options text with correct_answers
     const formattedOptions = question.options.map((optionText, index) => ({
       text: optionText,
-      is_correct: question.correct_answers?.[index] === true || question.correct_answers?.[index] === 't'
+      is_correct:
+        question.correct_answers?.[index] === true ||
+        question.correct_answers?.[index] === 't',
     }));
-    
+
     setEditingQuestion(question);
     setQuestionFormData({
       question_text: question.question_text,
@@ -206,7 +140,7 @@ export default function QuestionBank() {
       points: question.points || 1,
       image_url: question.image_url || '',
       chapter: question.chapter || '',
-      difficulty: question.difficulty || 'medium'
+      difficulty: question.difficulty || 'medium',
     });
     setShowEditQuestionForm(true);
   };
@@ -216,22 +150,26 @@ export default function QuestionBank() {
     setIsLoading(true);
     try {
       // Validate options - ensure each option has text
-      const validOptions = questionFormData.options.filter(option => option.text.trim() !== '');
-      
+      const validOptions = questionFormData.options.filter(
+        (option) => option.text.trim() !== ''
+      );
+
       if (validOptions.length === 0) {
         toast.error('Please add at least one option with text');
         setIsLoading(false);
         return;
       }
-      
+
       // Ensure at least one option is marked as correct for multiple-choice
-      if (questionFormData.question_type === 'multiple-choice' && 
-          !validOptions.some(option => option.is_correct)) {
+      if (
+        questionFormData.question_type === 'multiple-choice' &&
+        !validOptions.some((option) => option.is_correct)
+      ) {
         toast.error('Please mark at least one option as correct');
         setIsLoading(false);
         return;
       }
-      
+
       const questionData = {
         question_text: questionFormData.question_text,
         question_type: questionFormData.question_type,
@@ -240,22 +178,31 @@ export default function QuestionBank() {
         points: parseInt(questionFormData.points) || 1,
         image_url: questionFormData.image_url || '',
         chapter: questionFormData.chapter || '',
-        difficulty: questionFormData.difficulty
+        difficulty: questionFormData.difficulty,
       };
-      
-      console.log('Sending update data:', JSON.stringify(questionData, null, 2));
-      
-      await instructorService.updateQuestionInQuestionBank(selectedBank.question_bank_id, editingQuestion.question_id, questionData);
+
+      console.log(
+        'Sending update data:',
+        JSON.stringify(questionData, null, 2)
+      );
+
+      await instructorService.updateQuestionInQuestionBank(
+        selectedBank.question_bank_id,
+        editingQuestion.question_id,
+        questionData
+      );
       setShowEditQuestionForm(false);
       setQuestionFormData({
         question_text: '',
         question_type: 'multiple-choice',
-        options: [{ text: '', is_correct: false }],
+        options: Array(4)
+          .fill()
+          .map(() => ({ text: '', is_correct: false })),
         explanation: '',
         points: 1,
         image_url: '',
         chapter: '',
-        difficulty: 'medium'
+        difficulty: 'medium',
       });
       // Refresh questions list
       await fetchQuestions(selectedBank.question_bank_id);
@@ -268,15 +215,13 @@ export default function QuestionBank() {
     }
   };
 
-  const handleDeleteQuestion = async (question) => {
-    // Add confirmation dialog
-    if (!window.confirm(`Are you sure you want to delete this question: "${question.question_text}"?`)) {
-      return; // User canceled the deletion
-    }
-    
+  const handleDeleteQuestion = async (questionId) => {
     setIsLoading(true);
     try {
-      await instructorService.deleteQuestionFromQuestionBank(selectedBank.question_bank_id, question.question_id);
+      await instructorService.deleteQuestionFromQuestionBank(
+        selectedBank.question_bank_id,
+        questionId
+      );
       // Refresh questions list
       await fetchQuestions(selectedBank.question_bank_id);
       toast.success('Question deleted successfully');
@@ -285,84 +230,174 @@ export default function QuestionBank() {
       toast.error(error.message || 'Failed to delete question');
     } finally {
       setIsLoading(false);
+      setDeleteConfirmation({ show: false, type: '', id: null, item: null });
     }
   };
 
-  // Add function to delete a question bank
+  const handleAddQuestion = async (event) => {
+    event.preventDefault();
+    if (!selectedBank) {
+      toast.error('Please select a question bank first');
+      return;
+    }
+
+    // Validation checks
+    if (questionFormData.question_text.trim().length < 10) {
+      toast.error('Question text must be at least 10 characters long');
+      return;
+    }
+
+    if (!questionFormData.chapter) {
+      toast.error('Please select a chapter');
+      return;
+    }
+
+    // Validate options for multiple choice questions
+    if (questionFormData.question_type === 'multiple-choice') {
+      const validOptions = questionFormData.options.filter(
+        (option) => option.text.trim() !== ''
+      );
+
+      if (validOptions.length < 4) {
+        toast.error('Please add at least 4 options');
+        return;
+      }
+
+      if (validOptions.length > 6) {
+        toast.error('Maximum 6 options allowed');
+        return;
+      }
+
+      if (!validOptions.some((option) => option.is_correct)) {
+        toast.error('Please mark at least one option as correct');
+        return;
+      }
+    }
+
+    setIsLoading(true);
+    try {
+      const questionData = {
+        question_text: questionFormData.question_text,
+        question_type: questionFormData.question_type,
+        options: questionFormData.options,
+        explanation: questionFormData.explanation,
+        points: questionFormData.points,
+        image_url: questionFormData.image_url,
+        chapter: questionFormData.chapter,
+        difficulty: questionFormData.difficulty,
+      };
+
+      await instructorService.addQuestionsToQuestionBank(
+        selectedBank.question_bank_id,
+        [questionData]
+      );
+      setShowAddQuestionForm(false);
+      setQuestionFormData({
+        question_text: '',
+        question_type: 'multiple-choice',
+        options: Array(4)
+          .fill()
+          .map(() => ({ text: '', is_correct: false })),
+        explanation: '',
+        points: 1,
+        image_url: '',
+        chapter: '',
+        difficulty: 'medium',
+      });
+      await fetchQuestions(selectedBank.question_bank_id);
+      toast.success('Question added successfully');
+    } catch (error) {
+      console.error('Error adding question:', error);
+      toast.error(error.message || 'Failed to add question');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateQuestionBank = async (event) => {
+    event.preventDefault();
+    if (!selectedCourse) {
+      toast.error('Please select a course first');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await instructorService.createQuestionBank(selectedCourse.course_id, {
+        bank_name: bankFormData.bank_name,
+        description: bankFormData.description,
+      });
+      setShowAddBankForm(false);
+      setBankFormData({ bank_name: '', description: '' });
+      await fetchQuestionBanks(selectedCourse.course_id);
+      toast.success('Question bank created successfully');
+    } catch (error) {
+      console.error('Error creating question bank:', error);
+      toast.error(error.message || 'Failed to create question bank');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDeleteQuestionBank = async (bankId) => {
     if (!bankId) return;
-    
+
     setIsLoading(true);
     try {
       await instructorService.deleteQuestionBank(bankId);
-      
-      // Update the state to remove the deleted bank
-      setQuestionBanks(prev => prev.filter(bank => bank.question_bank_id !== bankId));
-      
-      // If the deleted bank was selected, reset selection
+      setQuestionBanks((prev) =>
+        prev.filter((bank) => bank.question_bank_id !== bankId)
+      );
       if (selectedBank && selectedBank.question_bank_id === bankId) {
         setSelectedBank(null);
         setQuestions([]);
       }
-      
       toast.success('Question bank deleted successfully');
     } catch (error) {
       console.error('Error deleting question bank:', error);
-      toast.error(error.response?.data?.error || 'Failed to delete question bank');
+      toast.error(error.message || 'Failed to delete question bank');
     } finally {
       setIsLoading(false);
-      setDeleteConfirmation({ show: false, type: 'questionBank', id: bankId });
+      setDeleteConfirmation({ show: false, type: '', id: null, item: null });
     }
   };
-  
-  // Add function to delete a course
-  const handleDeleteCourse = async (courseId) => {
-    if (!courseId) return;
-    
-    setIsLoading(true);
+
+  const fetchQuestionBanks = async (courseId) => {
     try {
-      await instructorService.deleteCourse(courseId);
-      
-      // Update the state to remove the deleted course
-      setCourses(prev => prev.filter(course => course.course_id !== courseId));
-      
-      // If the deleted course was selected, reset selection
-      if (selectedCourse && selectedCourse.course_id === courseId) {
-        setSelectedCourse(null);
-        setSelectedBank(null);
-        setQuestionBanks([]);
-        setQuestions([]);
-      }
-      
-      toast.success('Course deleted successfully');
+      const response = await instructorService.getQuestionBanksByCourse(
+        courseId
+      );
+      setQuestionBanks(response);
     } catch (error) {
-      console.error('Error deleting course:', error);
-      toast.error(error.response?.data?.error || 'Failed to delete course');
-    } finally {
-      setIsLoading(false);
-      setDeleteConfirmation({ show: false, type: 'course', id: courseId });
+      console.error('Error fetching question banks:', error);
+      toast.error('Failed to fetch question banks');
+      if (error.response?.status === 401) {
+        navigate('/login');
+      }
+    }
+  };
+
+  const fetchQuestions = async (questionBankId) => {
+    try {
+      const response = await instructorService.getQuestionsInQuestionBank(
+        questionBankId
+      );
+      setQuestions(response);
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      toast.error('Failed to fetch questions');
     }
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-wrap">
+    <div>
+      <div className="flex flex-wrap -mx-3">
         {/* Courses Panel */}
-        <div className="w-full md:w-1/3 p-3">
+        <div className="w-full md:w-1/3 px-3">
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-slate-800">Courses</h2>
-              <button
-                onClick={() => setShowAddCourseForm(true)}
-                className="flex items-center px-3 py-1.5 bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200"
-              >
-                <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Course
-              </button>
             </div>
-            
+
             <div className="space-y-3">
               {courses.map((course) => (
                 <div
@@ -374,26 +409,18 @@ export default function QuestionBank() {
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-slate-800">{course.course_name}</h3>
-                      <p className="text-sm text-slate-500">{course.course_code}</p>
-                      {course.description && (
-                        <p className="mt-2 text-sm text-slate-600 line-clamp-2">{course.description}</p>
-                      )}
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteConfirmation({ show: true, type: 'course', id: course.course_id });
-                      }}
-                      className="text-red-500 hover:text-red-700 transition-colors duration-200 ml-2 flex-shrink-0"
-                      title="Delete Course"
-                    >
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                  <div>
+                    <h3 className="font-medium text-slate-800">
+                      {course.course_name}
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      {course.course_code}
+                    </p>
+                    {course.description && (
+                      <p className="mt-2 text-sm text-slate-600 line-clamp-2">
+                        {course.description}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -402,22 +429,38 @@ export default function QuestionBank() {
         </div>
 
         {/* Question Banks Panel */}
-        <div className="w-full md:w-1/3 p-3">
-          <div className={`bg-white rounded-lg shadow-md p-6 mb-6 ${!selectedCourse ? 'opacity-75 pointer-events-none' : ''}`}>
+        <div className="w-full md:w-1/3 px-3">
+          <div
+            className={`bg-white rounded-lg shadow-md p-6 mb-6 ${
+              !selectedCourse ? 'opacity-75 pointer-events-none' : ''
+            }`}
+          >
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-slate-800">Question Banks</h2>
+              <h2 className="text-xl font-semibold text-slate-800">
+                Question Banks
+              </h2>
               <button
                 onClick={() => setShowAddBankForm(true)}
                 disabled={!selectedCourse}
-                className="flex items-center px-3 py-1.5 bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200 disabled:bg-slate-400 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-3 py-1.5 text-sm bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200 disabled:bg-slate-400 disabled:cursor-not-allowed font-medium"
               >
-                <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <svg
+                  className="h-4 w-4 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
                 </svg>
-                Add Question Bank
+                Add Bank
               </button>
             </div>
-            
+
             {selectedCourse ? (
               <div className="space-y-3">
                 {questionBanks.map((bank) => (
@@ -432,22 +475,43 @@ export default function QuestionBank() {
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-medium text-slate-800">{bank.bank_name}</h3>
-                        <p className="text-sm text-slate-500">Questions: {bank.question_count || 0}</p>
+                        <h3 className="font-medium text-slate-800">
+                          {bank.bank_name}
+                        </h3>
+                        <p className="text-sm text-slate-500">
+                          Questions: {bank.question_count || 0}
+                        </p>
                         {bank.description && (
-                          <p className="mt-2 text-sm text-slate-600 line-clamp-2">{bank.description}</p>
+                          <p className="mt-2 text-sm text-slate-600 line-clamp-2">
+                            {bank.description}
+                          </p>
                         )}
                       </div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setDeleteConfirmation({ show: true, type: 'questionBank', id: bank.question_bank_id });
+                          setDeleteConfirmation({
+                            show: true,
+                            type: 'questionBank',
+                            id: bank.question_bank_id,
+                            item: bank,
+                          });
                         }}
                         className="text-red-500 hover:text-red-700 transition-colors duration-200 ml-2 flex-shrink-0"
                         title="Delete Question Bank"
                       >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -463,17 +527,29 @@ export default function QuestionBank() {
         </div>
 
         {/* Questions Panel */}
-        <div className="w-full md:w-1/3 p-3">
+        <div className="w-full md:w-1/3 px-3">
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-slate-800">Questions</h2>
+              <h2 className="text-xl font-semibold text-slate-800">
+                Questions
+              </h2>
               {selectedBank && (
                 <button
                   onClick={() => setShowAddQuestionForm(true)}
-                  className="flex items-center px-3 py-1.5 bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200"
+                  className="inline-flex items-center px-3 py-1.5 text-sm bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200 font-medium"
                 >
-                  <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  <svg
+                    className="h-4 w-4 mr-1"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
                   </svg>
                   Add Question
                 </button>
@@ -481,7 +557,7 @@ export default function QuestionBank() {
             </div>
 
             {/* Questions List */}
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[calc(100vh-16rem)] overflow-y-auto pr-2 custom-scrollbar">
               {questions.map((question) => (
                 <div
                   key={question.question_id}
@@ -492,18 +568,45 @@ export default function QuestionBank() {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEditQuestion(question)}
-                        className="text-slate-600 hover:text-slate-800"
+                        className="text-slate-600 hover:text-slate-800 font-bold"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleDeleteQuestion(question)}
-                        className="text-red-500 hover:text-red-700"
+                        onClick={() =>
+                          setDeleteConfirmation({
+                            show: true,
+                            type: 'question',
+                            id: question.question_id,
+                            item: question,
+                          })
+                        }
+                        className="text-red-500 hover:text-red-700 font-bold"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -513,31 +616,46 @@ export default function QuestionBank() {
                       {question.options.map((option, index) => {
                         // Ensure we have a valid boolean value
                         const correctValue = question.correct_answers?.[index];
-                        const isCorrect = correctValue === true || correctValue === 't';
-                        
+                        const isCorrect =
+                          correctValue === true || correctValue === 't';
+
                         return (
                           <div key={index} className="flex items-center">
-                            <span className={`w-4 h-4 rounded-full mr-2 ${
-                              isCorrect ? 'bg-green-500' : 'bg-gray-300'
-                            }`}></span>
-                            <span className="text-sm text-slate-700">{option}</span>
+                            <span
+                              className={`w-4 h-4 rounded-full mr-2 ${
+                                isCorrect ? 'bg-green-500' : 'bg-gray-300'
+                              }`}
+                            ></span>
+                            <span className="text-sm text-slate-700">
+                              {option}
+                            </span>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                  <p className="text-sm text-slate-500">Points: {question.points}</p>
+                  <p className="text-sm text-slate-500">
+                    Points: {question.points}
+                  </p>
                   {question.image_url && (
-                    <p className="text-sm text-slate-500">Image URL: {question.image_url}</p>
+                    <p className="text-sm text-slate-500">
+                      Image URL: {question.image_url}
+                    </p>
                   )}
                   {question.chapter && (
-                    <p className="text-sm text-slate-500">Chapter: {question.chapter}</p>
+                    <p className="text-sm text-slate-500">
+                      Chapter: {question.chapter}
+                    </p>
                   )}
                   {question.explanation && (
-                    <p className="text-sm text-slate-500">Explanation: {question.explanation}</p>
+                    <p className="text-sm text-slate-500">
+                      Explanation: {question.explanation}
+                    </p>
                   )}
                   {question.difficulty && (
-                    <p className="text-sm text-slate-500">Difficulty: {question.difficulty}</p>
+                    <p className="text-sm text-slate-500">
+                      Difficulty: {question.difficulty}
+                    </p>
                   )}
                 </div>
               ))}
@@ -551,25 +669,39 @@ export default function QuestionBank() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-slate-800">Add New Question</h3>
+              <h3 className="text-xl font-semibold text-slate-800">
+                Add New Question
+              </h3>
               <button
                 onClick={() => {
                   setShowAddQuestionForm(false);
                   setQuestionFormData({
                     question_text: '',
                     question_type: 'multiple-choice',
-                    options: [{ text: '', is_correct: false }],
+                    options: Array(4)
+                      .fill()
+                      .map(() => ({ text: '', is_correct: false })),
                     explanation: '',
                     points: 1,
                     image_url: '',
                     chapter: '',
-                    difficulty: 'medium'
+                    difficulty: 'medium',
                   });
                 }}
                 className="text-slate-400 hover:text-slate-500 transition-colors duration-200"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -577,43 +709,58 @@ export default function QuestionBank() {
             <form onSubmit={handleAddQuestion} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Question Text</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Question Text <span className="text-red-500">*</span>
+                  </label>
                   <textarea
                     value={questionFormData.question_text}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      question_text: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setQuestionFormData({
+                        ...questionFormData,
+                        question_text: e.target.value,
+                      })
+                    }
                     rows={3}
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
-                    placeholder="Enter your question here..."
+                    placeholder="Enter your question here (minimum 10 characters)..."
                     required
                   />
+                  {questionFormData.question_text.trim().length > 0 &&
+                    questionFormData.question_text.trim().length < 10 && (
+                      <p className="mt-1 text-sm text-red-500">
+                        Question must be at least 10 characters long
+                      </p>
+                    )}
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Question Type</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Question Type
+                  </label>
                   <select
                     value={questionFormData.question_type}
                     onChange={(e) => {
                       const newType = e.target.value;
                       let newOptions = [...questionFormData.options];
-                      
+
                       // If changing to true/false, set options to True and False
                       if (newType === 'true/false') {
                         newOptions = [
                           { text: 'True', is_correct: true },
-                          { text: 'False', is_correct: false }
+                          { text: 'False', is_correct: false },
                         ];
-                      } else if (newType === 'multiple-choice' && questionFormData.question_type === 'true/false') {
+                      } else if (
+                        newType === 'multiple-choice' &&
+                        questionFormData.question_type === 'true/false'
+                      ) {
                         // If changing from true/false to multiple-choice, reset options
                         newOptions = [{ text: '', is_correct: false }];
                       }
-                      
+
                       setQuestionFormData({
                         ...questionFormData,
                         question_type: newType,
-                        options: newOptions
+                        options: newOptions,
                       });
                     }}
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
@@ -622,57 +769,88 @@ export default function QuestionBank() {
                     <option value="true/false">True/False</option>
                   </select>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Points</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Points
+                  </label>
                   <input
                     type="number"
                     min="1"
+                    max="15"
                     value={questionFormData.points}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      points: parseInt(e.target.value) || 1
-                    })}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      const points = Math.min(Math.max(value, 1), 15);
+                      setQuestionFormData({
+                        ...questionFormData,
+                        points: points,
+                      });
+                    }}
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                   />
+                  <p className="mt-1 text-sm text-slate-500">
+                    Points must be between 1 and 15
+                  </p>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Image URL (optional)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Image URL (optional)
+                  </label>
                   <input
                     type="text"
                     value={questionFormData.image_url}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      image_url: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setQuestionFormData({
+                        ...questionFormData,
+                        image_url: e.target.value,
+                      })
+                    }
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                     placeholder="Enter image URL..."
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Chapter (optional)</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Chapter <span className="text-red-500">*</span>
+                  </label>
+                  <select
                     value={questionFormData.chapter}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      chapter: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setQuestionFormData({
+                        ...questionFormData,
+                        chapter: e.target.value,
+                      })
+                    }
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
-                    placeholder="e.g., Chapter 3"
-                  />
+                    required
+                  >
+                    <option value="">Select Chapter</option>
+                    {courseChapters.map((chapter) => (
+                      <option
+                        key={chapter.chapter_id}
+                        value={`Chapter ${chapter.chapter_number}`}
+                      >
+                        Chapter {chapter.chapter_number}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Difficulty</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Difficulty
+                  </label>
                   <select
                     value={questionFormData.difficulty}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      difficulty: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setQuestionFormData({
+                        ...questionFormData,
+                        difficulty: e.target.value,
+                      })
+                    }
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                   >
                     <option value="easy">Easy</option>
@@ -680,124 +858,135 @@ export default function QuestionBank() {
                     <option value="hard">Hard</option>
                   </select>
                 </div>
-                
+
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Options</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Options <span className="text-red-500">*</span>
+                    {questionFormData.question_type === 'multiple-choice' && (
+                      <span className="text-sm text-slate-500 ml-2">
+                        (Minimum 4, Maximum 6 options)
+                      </span>
+                    )}
+                  </label>
                   <div className="space-y-3">
-                    {questionFormData.question_type === 'true/false' ? (
-                      // True/False options display
-                      questionFormData.options.map((option, index) => (
-                        <div key={index} className="flex items-center space-x-4">
-                          <div className="flex-1">
-                            <div className="relative">
-                              <input
-                                type="text"
-                                value={option.text}
-                                disabled
-                                className="block w-full rounded-md border-slate-300 bg-slate-50 shadow-sm pl-10 py-2 px-3"
-                              />
-                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <span className="text-slate-500">{index + 1}.</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
+                    {questionFormData.options.map((option, index) => (
+                      <div key={index} className="flex items-center space-x-4">
+                        <div className="flex-1">
+                          <div className="relative">
                             <input
-                              type="radio"
-                              name="correctAnswer"
-                              checked={option.is_correct}
+                              type="text"
+                              value={option.text}
                               onChange={(e) => {
-                                const newOptions = questionFormData.options.map((opt, i) => 
-                                  ({ ...opt, is_correct: i === index })
-                                );
-                                setQuestionFormData({ ...questionFormData, options: newOptions });
+                                const newOptions = [
+                                  ...questionFormData.options,
+                                ];
+                                newOptions[index] = {
+                                  ...option,
+                                  text: e.target.value,
+                                };
+                                setQuestionFormData({
+                                  ...questionFormData,
+                                  options: newOptions,
+                                });
                               }}
-                              className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300"
+                              className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 pl-10 py-2 px-3"
+                              placeholder={`Option ${index + 1}`}
+                              required
                             />
-                            <label className="ml-2 text-sm text-slate-700">Correct</label>
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-slate-500">
+                                {index + 1}.
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      // Multiple choice options
-                      <>
-                        {questionFormData.options.map((option, index) => (
-                          <div key={index} className="flex items-center space-x-4">
-                            <div className="flex-1">
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  value={option.text}
-                                  onChange={(e) => {
-                                    const newOptions = [...questionFormData.options];
-                                    newOptions[index] = { ...option, text: e.target.value };
-                                    setQuestionFormData({ ...questionFormData, options: newOptions });
-                                  }}
-                                  className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 pl-10 py-2 px-3"
-                                  placeholder={`Option ${index + 1}`}
-                                  required
-                                />
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                  <span className="text-slate-500">{index + 1}.</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center">
-                              <input
-                                type="radio"
-                                name="correctAnswer"
-                                checked={option.is_correct}
-                                onChange={(e) => {
-                                  const newOptions = questionFormData.options.map((opt, i) => 
-                                    ({ ...opt, is_correct: i === index })
-                                  );
-                                  setQuestionFormData({ ...questionFormData, options: newOptions });
-                                }}
-                                className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300"
+                        <div className="flex items-center">
+                          <input
+                            type="radio"
+                            name="correctAnswer"
+                            checked={option.is_correct}
+                            onChange={() => {
+                              const newOptions = questionFormData.options.map(
+                                (opt, i) => ({
+                                  ...opt,
+                                  is_correct: i === index,
+                                })
+                              );
+                              setQuestionFormData({
+                                ...questionFormData,
+                                options: newOptions,
+                              });
+                            }}
+                            className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300"
+                          />
+                          <label className="ml-2 text-sm text-slate-700">
+                            Correct
+                          </label>
+                        </div>
+                        {questionFormData.options.length > 4 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newOptions =
+                                questionFormData.options.filter(
+                                  (_, i) => i !== index
+                                );
+                              setQuestionFormData({
+                                ...questionFormData,
+                                options: newOptions,
+                              });
+                            }}
+                            className="text-red-500 hover:text-red-700 p-1"
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                               />
-                              <label className="ml-2 text-sm text-slate-700">Correct</label>
-                            </div>
-                            {index > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newOptions = questionFormData.options.filter((_, i) => i !== index);
-                                  setQuestionFormData({ ...questionFormData, options: newOptions });
-                                }}
-                                className="text-red-500 hover:text-red-700 p-1"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setQuestionFormData({
-                              ...questionFormData,
-                              options: [...questionFormData.options, { text: '', is_correct: false }]
-                            });
-                          }}
-                          className="mt-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
-                        >
-                          Add Option
-                        </button>
-                      </>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {questionFormData.options.length < 6 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuestionFormData({
+                            ...questionFormData,
+                            options: [
+                              ...questionFormData.options,
+                              { text: '', is_correct: false },
+                            ],
+                          });
+                        }}
+                        className="mt-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
+                      >
+                        Add Option
+                      </button>
                     )}
                   </div>
                 </div>
-                
+
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Explanation (optional)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Explanation (optional)
+                  </label>
                   <textarea
                     value={questionFormData.explanation}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      explanation: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setQuestionFormData({
+                        ...questionFormData,
+                        explanation: e.target.value,
+                      })
+                    }
                     rows={2}
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                     placeholder="Enter explanation..."
@@ -813,21 +1002,23 @@ export default function QuestionBank() {
                     setQuestionFormData({
                       question_text: '',
                       question_type: 'multiple-choice',
-                      options: [{ text: '', is_correct: false }],
+                      options: Array(4)
+                        .fill()
+                        .map(() => ({ text: '', is_correct: false })),
                       explanation: '',
                       points: 1,
                       image_url: '',
                       chapter: '',
-                      difficulty: 'medium'
+                      difficulty: 'medium',
                     });
                   }}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200 font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-all duration-200"
+                  className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-all duration-200 font-bold"
                 >
                   Add Question
                 </button>
@@ -842,7 +1033,9 @@ export default function QuestionBank() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-slate-800">Edit Question</h3>
+              <h3 className="text-xl font-semibold text-slate-800">
+                Edit Question
+              </h3>
               <button
                 onClick={() => {
                   setShowEditQuestionForm(false);
@@ -854,13 +1047,23 @@ export default function QuestionBank() {
                     points: 1,
                     image_url: '',
                     chapter: '',
-                    difficulty: 'medium'
+                    difficulty: 'medium',
                   });
                 }}
                 className="text-slate-400 hover:text-slate-500 transition-colors duration-200"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -868,43 +1071,52 @@ export default function QuestionBank() {
             <form onSubmit={handleUpdateQuestion} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Question Text</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Question Text
+                  </label>
                   <textarea
                     value={questionFormData.question_text}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      question_text: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setQuestionFormData({
+                        ...questionFormData,
+                        question_text: e.target.value,
+                      })
+                    }
                     rows={3}
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                     placeholder="Enter your question here..."
                     required
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Question Type</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Question Type
+                  </label>
                   <select
                     value={questionFormData.question_type}
                     onChange={(e) => {
                       const newType = e.target.value;
                       let newOptions = [...questionFormData.options];
-                      
+
                       // If changing to true/false, set options to True and False
                       if (newType === 'true/false') {
                         newOptions = [
                           { text: 'True', is_correct: true },
-                          { text: 'False', is_correct: false }
+                          { text: 'False', is_correct: false },
                         ];
-                      } else if (newType === 'multiple-choice' && questionFormData.question_type === 'true/false') {
+                      } else if (
+                        newType === 'multiple-choice' &&
+                        questionFormData.question_type === 'true/false'
+                      ) {
                         // If changing from true/false to multiple-choice, reset options
                         newOptions = [{ text: '', is_correct: false }];
                       }
-                      
+
                       setQuestionFormData({
                         ...questionFormData,
                         question_type: newType,
-                        options: newOptions
+                        options: newOptions,
                       });
                     }}
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
@@ -913,57 +1125,88 @@ export default function QuestionBank() {
                     <option value="true/false">True/False</option>
                   </select>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Points</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Points
+                  </label>
                   <input
                     type="number"
                     min="1"
+                    max="15"
                     value={questionFormData.points}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      points: parseInt(e.target.value) || 1
-                    })}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      const points = Math.min(Math.max(value, 1), 15);
+                      setQuestionFormData({
+                        ...questionFormData,
+                        points: points,
+                      });
+                    }}
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                   />
+                  <p className="mt-1 text-sm text-slate-500">
+                    Points must be between 1 and 15
+                  </p>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Image URL (optional)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Image URL (optional)
+                  </label>
                   <input
                     type="text"
                     value={questionFormData.image_url}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      image_url: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setQuestionFormData({
+                        ...questionFormData,
+                        image_url: e.target.value,
+                      })
+                    }
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                     placeholder="Enter image URL..."
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Chapter (optional)</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Chapter
+                  </label>
+                  <select
                     value={questionFormData.chapter}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      chapter: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setQuestionFormData({
+                        ...questionFormData,
+                        chapter: e.target.value,
+                      })
+                    }
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
-                    placeholder="e.g., Chapter 3"
-                  />
+                    required
+                  >
+                    <option value="">Select Chapter</option>
+                    {courseChapters.map((chapter) => (
+                      <option
+                        key={chapter.chapter_id}
+                        value={`Chapter ${chapter.chapter_number}`}
+                      >
+                        Chapter {chapter.chapter_number}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Difficulty</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Difficulty
+                  </label>
                   <select
                     value={questionFormData.difficulty}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      difficulty: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setQuestionFormData({
+                        ...questionFormData,
+                        difficulty: e.target.value,
+                      })
+                    }
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                   >
                     <option value="easy">Easy</option>
@@ -971,14 +1214,19 @@ export default function QuestionBank() {
                     <option value="hard">Hard</option>
                   </select>
                 </div>
-                
+
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Options</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Options
+                  </label>
                   <div className="space-y-3">
                     {questionFormData.question_type === 'true/false' ? (
                       // True/False options display
                       questionFormData.options.map((option, index) => (
-                        <div key={index} className="flex items-center space-x-4">
+                        <div
+                          key={index}
+                          className="flex items-center space-x-4"
+                        >
                           <div className="flex-1">
                             <div className="relative">
                               <input
@@ -988,7 +1236,9 @@ export default function QuestionBank() {
                                 className="block w-full rounded-md border-slate-300 bg-slate-50 shadow-sm pl-10 py-2 px-3"
                               />
                               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <span className="text-slate-500">{index + 1}.</span>
+                                <span className="text-slate-500">
+                                  {index + 1}.
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -997,15 +1247,23 @@ export default function QuestionBank() {
                               type="radio"
                               name="correctAnswer"
                               checked={option.is_correct}
-                              onChange={(e) => {
-                                const newOptions = questionFormData.options.map((opt, i) => 
-                                  ({ ...opt, is_correct: i === index })
+                              onChange={() => {
+                                const newOptions = questionFormData.options.map(
+                                  (opt, i) => ({
+                                    ...opt,
+                                    is_correct: i === index,
+                                  })
                                 );
-                                setQuestionFormData({ ...questionFormData, options: newOptions });
+                                setQuestionFormData({
+                                  ...questionFormData,
+                                  options: newOptions,
+                                });
                               }}
                               className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300"
                             />
-                            <label className="ml-2 text-sm text-slate-700">Correct</label>
+                            <label className="ml-2 text-sm text-slate-700">
+                              Correct
+                            </label>
                           </div>
                         </div>
                       ))
@@ -1013,23 +1271,36 @@ export default function QuestionBank() {
                       // Multiple choice options
                       <>
                         {questionFormData.options.map((option, index) => (
-                          <div key={index} className="flex items-center space-x-4">
+                          <div
+                            key={index}
+                            className="flex items-center space-x-4"
+                          >
                             <div className="flex-1">
                               <div className="relative">
                                 <input
                                   type="text"
                                   value={option.text}
                                   onChange={(e) => {
-                                    const newOptions = [...questionFormData.options];
-                                    newOptions[index] = { ...option, text: e.target.value };
-                                    setQuestionFormData({ ...questionFormData, options: newOptions });
+                                    const newOptions = [
+                                      ...questionFormData.options,
+                                    ];
+                                    newOptions[index] = {
+                                      ...option,
+                                      text: e.target.value,
+                                    };
+                                    setQuestionFormData({
+                                      ...questionFormData,
+                                      options: newOptions,
+                                    });
                                   }}
                                   className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 pl-10 py-2 px-3"
                                   placeholder={`Option ${index + 1}`}
                                   required
                                 />
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                  <span className="text-slate-500">{index + 1}.</span>
+                                  <span className="text-slate-500">
+                                    {index + 1}.
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -1038,27 +1309,50 @@ export default function QuestionBank() {
                                 type="radio"
                                 name="correctAnswer"
                                 checked={option.is_correct}
-                                onChange={(e) => {
-                                  const newOptions = questionFormData.options.map((opt, i) => 
-                                    ({ ...opt, is_correct: i === index })
-                                  );
-                                  setQuestionFormData({ ...questionFormData, options: newOptions });
+                                onChange={() => {
+                                  const newOptions =
+                                    questionFormData.options.map((opt, i) => ({
+                                      ...opt,
+                                      is_correct: i === index,
+                                    }));
+                                  setQuestionFormData({
+                                    ...questionFormData,
+                                    options: newOptions,
+                                  });
                                 }}
                                 className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300"
                               />
-                              <label className="ml-2 text-sm text-slate-700">Correct</label>
+                              <label className="ml-2 text-sm text-slate-700">
+                                Correct
+                              </label>
                             </div>
                             {index > 0 && (
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const newOptions = questionFormData.options.filter((_, i) => i !== index);
-                                  setQuestionFormData({ ...questionFormData, options: newOptions });
+                                  const newOptions =
+                                    questionFormData.options.filter(
+                                      (_, i) => i !== index
+                                    );
+                                  setQuestionFormData({
+                                    ...questionFormData,
+                                    options: newOptions,
+                                  });
                                 }}
                                 className="text-red-500 hover:text-red-700 p-1"
                               >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                <svg
+                                  className="w-5 h-5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
                                 </svg>
                               </button>
                             )}
@@ -1069,7 +1363,10 @@ export default function QuestionBank() {
                           onClick={() => {
                             setQuestionFormData({
                               ...questionFormData,
-                              options: [...questionFormData.options, { text: '', is_correct: false }]
+                              options: [
+                                ...questionFormData.options,
+                                { text: '', is_correct: false },
+                              ],
                             });
                           }}
                           className="mt-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
@@ -1080,15 +1377,19 @@ export default function QuestionBank() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Explanation (optional)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Explanation (optional)
+                  </label>
                   <textarea
                     value={questionFormData.explanation}
-                    onChange={(e) => setQuestionFormData({
-                      ...questionFormData,
-                      explanation: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setQuestionFormData({
+                        ...questionFormData,
+                        explanation: e.target.value,
+                      })
+                    }
                     rows={2}
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
                     placeholder="Enter explanation..."
@@ -1102,89 +1403,15 @@ export default function QuestionBank() {
                   onClick={() => {
                     setShowEditQuestionForm(false);
                   }}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200 font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-all duration-200"
+                  className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-all duration-200 font-bold"
                 >
                   Update Question
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Add course Modal */}
-      {showAddCourseForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">Create New Course</h3>
-              <button
-                onClick={() => setShowAddCourseForm(false)}
-                className="text-slate-400 hover:text-slate-500 transition-colors duration-200"
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <form onSubmit={handleCreateCourse} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Course Name</label>
-                <input
-                  type="text"
-                  value={courseFormData.course_name}
-                  onChange={(e) => setCourseFormData(prev => ({ ...prev, course_name: e.target.value }))}
-                  className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
-                    focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
-                  placeholder="e.g., Computer Science"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Course Code</label>
-                <input
-                  type="text"
-                  value={courseFormData.course_code}
-                  onChange={(e) => setCourseFormData(prev => ({ ...prev, course_code: e.target.value }))}
-                  className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
-                    focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
-                  placeholder="e.g., CS101"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Description</label>
-                <textarea
-                  value={courseFormData.description}
-                  onChange={(e) => setCourseFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                  className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
-                    focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
-                  placeholder="Enter a brief description of the course"
-                />
-              </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAddCourseForm(false)}
-                  className="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-gray-50
-                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-slate-700 hover:bg-slate-600
-                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-all duration-200"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Creating...' : 'Create Course'}
                 </button>
               </div>
             </form>
@@ -1197,23 +1424,42 @@ export default function QuestionBank() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">Create New Question Bank</h3>
+              <h3 className="text-lg font-semibold text-slate-800">
+                Create New Question Bank
+              </h3>
               <button
                 onClick={() => setShowAddBankForm(false)}
                 className="text-slate-400 hover:text-slate-500 transition-colors duration-200"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
             <form onSubmit={handleCreateQuestionBank} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700">Bank Name</label>
+                <label className="block text-sm font-medium text-slate-700">
+                  Bank Name
+                </label>
                 <input
                   type="text"
                   value={bankFormData.bank_name}
-                  onChange={(e) => setBankFormData(prev => ({ ...prev, bank_name: e.target.value }))}
+                  onChange={(e) =>
+                    setBankFormData((prev) => ({
+                      ...prev,
+                      bank_name: e.target.value,
+                    }))
+                  }
                   className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
                     focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
                   placeholder="e.g., Midterm Questions"
@@ -1221,10 +1467,17 @@ export default function QuestionBank() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700">Description</label>
+                <label className="block text-sm font-medium text-slate-700">
+                  Description
+                </label>
                 <textarea
                   value={bankFormData.description}
-                  onChange={(e) => setBankFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setBankFormData((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
                   rows={3}
                   className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
                     focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
@@ -1259,39 +1512,122 @@ export default function QuestionBank() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <div className="mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">Confirm Deletion</h3>
-              <p className="text-slate-600 mt-2">
-                {deleteConfirmation.type === 'course' 
-                  ? 'Are you sure you want to delete this course? This will also delete all associated question banks and questions.' 
-                  : deleteConfirmation.type === 'questionBank'
-                    ? 'Are you sure you want to delete this question bank? This will also delete all questions in this bank.'
-                    : 'Are you sure you want to delete this item?'
-                }
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-slate-800">
+                  Confirm Deletion
+                </h3>
+                <button
+                  onClick={() =>
+                    setDeleteConfirmation({
+                      show: false,
+                      type: '',
+                      id: null,
+                      item: null,
+                    })
+                  }
+                  className="text-slate-400 hover:text-slate-500 transition-colors duration-200"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {deleteConfirmation.type === 'questionBank' ? (
+                <p className="text-slate-600">
+                  Are you sure you want to delete this question bank? This will
+                  also delete all questions in this bank.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-slate-600">
+                    Are you sure you want to delete this question?
+                  </p>
+                  {deleteConfirmation.item && (
+                    <div className="mt-2 p-3 bg-slate-50 rounded-lg">
+                      <p className="text-sm font-medium text-slate-700">
+                        {deleteConfirmation.item.question_text}
+                      </p>
+                      <div className="mt-2">
+                        <p className="text-xs text-slate-500">
+                          Type: {deleteConfirmation.item.question_type}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Chapter: {deleteConfirmation.item.chapter}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Points: {deleteConfirmation.item.points}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="flex justify-end space-x-3 pt-4">
+
+            <div className="flex justify-end space-x-3">
               <button
                 type="button"
-                onClick={() => setDeleteConfirmation({ show: false, type: '', id: null })}
-                className="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-gray-50
-                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
+                onClick={() =>
+                  setDeleteConfirmation({
+                    show: false,
+                    type: '',
+                    id: null,
+                    item: null,
+                  })
+                }
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  if (deleteConfirmation.type === 'course') {
-                    handleDeleteCourse(deleteConfirmation.id);
-                  } else if (deleteConfirmation.type === 'questionBank') {
+                  if (deleteConfirmation.type === 'questionBank') {
                     handleDeleteQuestionBank(deleteConfirmation.id);
+                  } else {
+                    handleDeleteQuestion(deleteConfirmation.id);
                   }
                 }}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700
-                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
                 disabled={isLoading}
               >
-                {isLoading ? 'Deleting...' : 'Delete'}
+                {isLoading ? (
+                  <span className="flex items-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Deleting...
+                  </span>
+                ) : (
+                  'Delete'
+                )}
               </button>
             </div>
           </div>

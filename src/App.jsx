@@ -20,6 +20,7 @@ import InstructorLayout from './components/instructor/InstructorLayout';
 import QuestionBank from './components/instructor/QuestionBank';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
+import './styles/custom.css';
 import theme from './theme';
 
 // Protected Route component
