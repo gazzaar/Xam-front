@@ -33,7 +33,7 @@ export default function LandingPage() {
               <br />
               One Test at a Time
             </h1>
-            <p className="text-xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
               Transform your testing experience with our innovative platform
               designed for modern education. Streamlined, secure, and smart.
             </p>
@@ -93,7 +93,7 @@ export default function LandingPage() {
               <h3 className="text-xl font-semibold text-slate-900 mb-4">
                 Smart Question Bank
               </h3>
-              <p className="text-slate-600">
+              <p className="text-slate-600 font-medium">
                 Intelligent question management system with automatic
                 categorization and difficulty assessment.
               </p>
@@ -119,7 +119,7 @@ export default function LandingPage() {
               <h3 className="text-xl font-semibold text-slate-900 mb-4">
                 Real-time Analytics
               </h3>
-              <p className="text-slate-600">
+              <p className="text-slate-600 font-medium">
                 Comprehensive analytics and insights to track performance and
                 identify areas for improvement.
               </p>
@@ -145,7 +145,7 @@ export default function LandingPage() {
               <h3 className="text-xl font-semibold text-slate-900 mb-4">
                 Secure Environment
               </h3>
-              <p className="text-slate-600">
+              <p className="text-slate-600 font-medium">
                 Advanced security measures to ensure exam integrity and prevent
                 unauthorized access.
               </p>
@@ -180,7 +180,7 @@ export default function LandingPage() {
                     }}
                   >
                     <Typography variant="h6">Create Questions</Typography>
-                    <Typography color="text.secondary">
+                    <Typography color="text.secondary" className="font-medium">
                       Build your question bank with our intuitive interface
                     </Typography>
                   </Paper>
@@ -200,7 +200,7 @@ export default function LandingPage() {
                     }}
                   >
                     <Typography variant="h6">Design Exams</Typography>
-                    <Typography color="text.secondary">
+                    <Typography color="text.secondary" className="font-medium">
                       Create and customize exams with advanced settings
                     </Typography>
                   </Paper>
@@ -220,7 +220,7 @@ export default function LandingPage() {
                     }}
                   >
                     <Typography variant="h6">Conduct Tests</Typography>
-                    <Typography color="text.secondary">
+                    <Typography color="text.secondary" className="font-medium">
                       Monitor exams in real-time with anti-cheating measures
                     </Typography>
                   </Paper>
@@ -239,7 +239,7 @@ export default function LandingPage() {
                     }}
                   >
                     <Typography variant="h6">Analyze Results</Typography>
-                    <Typography color="text.secondary">
+                    <Typography color="text.secondary" className="font-medium">
                       Get detailed insights and performance analytics
                     </Typography>
                   </Paper>
@@ -277,15 +277,19 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="p-6">
               <div className="text-4xl font-bold text-white mb-2">10,000+</div>
-              <div className="text-slate-400">Questions Created</div>
+              <div className="text-slate-400 font-medium">
+                Questions Created
+              </div>
             </div>
             <div className="p-6">
               <div className="text-4xl font-bold text-white mb-2">5,000+</div>
-              <div className="text-slate-400">Exams Conducted</div>
+              <div className="text-slate-400 font-medium">Exams Conducted</div>
             </div>
             <div className="p-6">
               <div className="text-4xl font-bold text-white mb-2">95%</div>
-              <div className="text-slate-400">Satisfaction Rate</div>
+              <div className="text-slate-400 font-medium">
+                Satisfaction Rate
+              </div>
             </div>
           </div>
         </div>
@@ -313,8 +317,8 @@ export default function LandingPage() {
             <h2 className="text-4xl font-bold text-slate-900 mb-4">
               Get in Touch
             </h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-              Have questions about our platform? We're here to help you get
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto font-medium">
+              Have questions about our platform? We&apos;re here to help you get
               started.
             </p>
           </div>
@@ -338,7 +342,7 @@ export default function LandingPage() {
               <h3 className="text-xl font-semibold text-slate-900 mb-4">
                 Email Us
               </h3>
-              <p className="text-slate-600">info@xam.com</p>
+              <p className="text-slate-600 font-medium">info@xam.com</p>
             </div>
             <div className="bg-slate-50 p-8 rounded-2xl text-center">
               <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-6 mx-auto">
@@ -359,7 +363,7 @@ export default function LandingPage() {
               <h3 className="text-xl font-semibold text-slate-900 mb-4">
                 Call Us
               </h3>
-              <p className="text-slate-600">(123) 456-7890</p>
+              <p className="text-slate-600 font-medium">(123) 456-7890</p>
             </div>
             <div className="bg-slate-50 p-8 rounded-2xl text-center">
               <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-6 mx-auto">
@@ -386,7 +390,7 @@ export default function LandingPage() {
               <h3 className="text-xl font-semibold text-slate-900 mb-4">
                 Visit Us
               </h3>
-              <p className="text-slate-600">123 Exam Street</p>
+              <p className="text-slate-600 font-medium">123 Exam Street</p>
             </div>
           </div>
         </div>
@@ -405,7 +409,7 @@ export default function LandingPage() {
                   am
                 </span>
               </div>
-              <p className="mb-4 text-slate-400">
+              <p className="mb-4 text-slate-400 font-medium">
                 Empowering educators with modern examination tools for better
                 assessment and learning outcomes.
               </p>
@@ -444,7 +448,7 @@ export default function LandingPage() {
             </div>
             <div>
               <h4 className="text-white font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2">
+              <ul className="space-y-2 font-medium">
                 <li>
                   <Link
                     to="/login"
@@ -456,7 +460,7 @@ export default function LandingPage() {
                 <li>
                   <button
                     onClick={() => scrollToSection('features')}
-                    className="text-slate-400 hover:text-white transition-colors"
+                    className="text-slate-400 hover:text-white transition-colors font-bold"
                   >
                     Features
                   </button>
@@ -464,7 +468,7 @@ export default function LandingPage() {
                 <li>
                   <button
                     onClick={() => scrollToSection('about')}
-                    className="text-slate-400 hover:text-white transition-colors"
+                    className="text-slate-400 hover:text-white transition-colors font-bold"
                   >
                     About Us
                   </button>
@@ -472,7 +476,7 @@ export default function LandingPage() {
                 <li>
                   <button
                     onClick={() => scrollToSection('contact')}
-                    className="text-slate-400 hover:text-white transition-colors"
+                    className="text-slate-400 hover:text-white transition-colors font-bold"
                   >
                     Contact
                   </button>
@@ -481,7 +485,7 @@ export default function LandingPage() {
             </div>
             <div>
               <h4 className="text-white font-semibold mb-4">Contact</h4>
-              <ul className="space-y-2">
+              <ul className="space-y-2 font-medium">
                 <li>Email: info@xam.com</li>
                 <li>Phone: (123) 456-7890</li>
                 <li>Address: 123 Exam Street</li>
