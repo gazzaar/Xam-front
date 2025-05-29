@@ -324,13 +324,13 @@ export default function QuestionBank() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-wrap">
+    <div className="container mx-auto px-4 py-6">
+      <div className="flex flex-wrap -mx-2">
         {/* Courses Panel */}
-        <div className="w-full md:w-1/3 p-3">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-slate-800">Courses</h2>
+        <div className="w-full md:w-1/3 px-2">
+          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-semibold text-slate-800">Courses</h2>
             </div>
 
             <div className="space-y-3">
@@ -364,23 +364,23 @@ export default function QuestionBank() {
         </div>
 
         {/* Question Banks Panel */}
-        <div className="w-full md:w-1/3 p-3">
+        <div className="w-full md:w-1/3 px-2">
           <div
-            className={`bg-white rounded-lg shadow-md p-6 mb-6 ${
+            className={`bg-white rounded-lg shadow-md p-4 mb-4 ${
               !selectedCourse ? 'opacity-75 pointer-events-none' : ''
             }`}
           >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-slate-800">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-semibold text-slate-800">
                 Question Banks
               </h2>
               <button
                 onClick={() => setShowAddBankForm(true)}
                 disabled={!selectedCourse}
-                className="flex items-center px-3 py-1.5 bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200 disabled:bg-slate-400 disabled:cursor-not-allowed"
+                className="flex items-center px-2.5 py-1 text-sm bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200 disabled:bg-slate-400 disabled:cursor-not-allowed"
               >
                 <svg
-                  className="h-4 w-4 mr-1"
+                  className="h-3.5 w-3.5 mr-1"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -392,7 +392,7 @@ export default function QuestionBank() {
                     d="M12 4v16m8-8H4"
                   />
                 </svg>
-                Add Question Bank
+                Add Bank
               </button>
             </div>
 
@@ -461,19 +461,19 @@ export default function QuestionBank() {
         </div>
 
         {/* Questions Panel */}
-        <div className="w-full md:w-1/3 p-3">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-slate-800">
+        <div className="w-full md:w-1/3 px-2">
+          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-semibold text-slate-800">
                 Questions
               </h2>
               {selectedBank && (
                 <button
                   onClick={() => setShowAddQuestionForm(true)}
-                  className="flex items-center px-3 py-1.5 bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200"
+                  className="flex items-center px-2.5 py-1 text-sm bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200"
                 >
                   <svg
-                    className="h-4 w-4 mr-1"
+                    className="h-3.5 w-3.5 mr-1"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -594,9 +594,9 @@ export default function QuestionBank() {
       {/* Add Question Modal */}
       {showAddQuestionForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-slate-800">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-semibold text-slate-800">
                 Add New Question
               </h3>
               <button
@@ -995,9 +995,9 @@ export default function QuestionBank() {
       {/* Edit Question Modal */}
       {showEditQuestionForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-slate-800">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-semibold text-slate-800">
                 Edit Question
               </h3>
               <button
@@ -1386,8 +1386,8 @@ export default function QuestionBank() {
       {/* Add Question Bank Modal */}
       {showAddBankForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-            <div className="flex justify-between items-center mb-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4">
+            <div className="flex justify-between items-center mb-3">
               <h3 className="text-lg font-semibold text-slate-800">
                 Create New Question Bank
               </h3>
@@ -1474,12 +1474,12 @@ export default function QuestionBank() {
       {/* Delete Confirmation Modal */}
       {deleteConfirmation.show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-            <div className="mb-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4">
+            <div className="mb-3">
               <h3 className="text-lg font-semibold text-slate-800">
                 Confirm Deletion
               </h3>
-              <p className="text-slate-600 mt-2">
+              <p className="text-sm text-slate-600 mt-2">
                 Are you sure you want to delete this question bank? This will
                 also delete all questions in this bank.
               </p>
