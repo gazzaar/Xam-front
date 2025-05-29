@@ -9,6 +9,7 @@ export default function ExamList() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [copiedLinkId, setCopiedLinkId] = useState(null);
 
   useEffect(() => {
     console.log('ExamList component mounted, fetching exams...');
@@ -93,6 +94,16 @@ export default function ExamList() {
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString();
+  };
+
+  const copyExamLink = (examLinkId) => {
+    const examUrl = `${window.location.origin}/exam/${examLinkId}`;
+    navigator.clipboard.writeText(examUrl).then(() => {
+      setCopiedLinkId(examLinkId);
+      toast.success('Exam link copied to clipboard');
+      // Reset the copied state after 3 seconds
+      setTimeout(() => setCopiedLinkId(null), 3000);
+    });
   };
 
   if (isLoading) {
@@ -190,6 +201,12 @@ export default function ExamList() {
                 </th>
                 <th
                   scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                >
+                  Exam Link
+                </th>
+                <th
+                  scope="col"
                   className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider"
                 >
                   Actions
@@ -200,7 +217,7 @@ export default function ExamList() {
               {exams.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="7"
                     className="px-6 py-4 text-center text-sm text-slate-500"
                   >
                     No exams found. Click &quot;Create New Exam&quot; to get
@@ -250,6 +267,50 @@ export default function ExamList() {
                               <span>{ref.count} questions</span>
                             </div>
                           ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center justify-center">
+                        <button
+                          onClick={() => copyExamLink(exam.exam_link_id)}
+                          className="inline-flex items-center px-3 py-1.5 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors duration-200"
+                        >
+                          {copiedLinkId === exam.exam_link_id ? (
+                            <>
+                              <svg
+                                className="w-4 h-4 mr-1"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <svg
+                                className="w-4 h-4 mr-1"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+                                />
+                              </svg>
+                              Copy Link
+                            </>
+                          )}
+                        </button>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

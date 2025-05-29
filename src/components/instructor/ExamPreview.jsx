@@ -67,6 +67,20 @@ const ExamPreview = () => {
     });
   };
 
+  const calculateStatus = (startDate, endDate) => {
+    const now = new Date();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (now < start) {
+      return 'upcoming';
+    } else if (now >= start && now <= end) {
+      return 'active';
+    } else {
+      return 'completed';
+    }
+  };
+
   const getStatusBadgeClass = (status) => {
     switch (status?.toLowerCase()) {
       case 'active':
@@ -167,10 +181,10 @@ const ExamPreview = () => {
               <div className="mt-2 flex items-center gap-2">
                 <span
                   className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusBadgeClass(
-                    exam.status
+                    calculateStatus(exam.start_date, exam.end_date)
                   )}`}
                 >
-                  {exam.status || 'Draft'}
+                  {calculateStatus(exam.start_date, exam.end_date)}
                 </span>
                 {exam.exam_metadata && (
                   <span

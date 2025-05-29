@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { examService, instructorService } from '../../services/api';
 
@@ -8,18 +9,24 @@ export default function CreateExam() {
   const [error, setError] = useState('');
   const [courses, setCourses] = useState([]);
   const [questionBanks, setQuestionBanks] = useState([]);
+  const [bankStats, setBankStats] = useState({
+    totalQuestions: 0,
+    chapterStats: {},
+  });
+  const [selectedChapters, setSelectedChapters] = useState(new Set());
   const [examData, setExamData] = useState({
     exam_name: '',
     description: '',
-    start_date: '',
-    end_date: '',
+    exam_date: '',
+    start_time: '',
+    end_time: '',
     duration: 60,
-    exam_link_id: generateRandomCode(8), // Generate a random link ID
-    is_randomized: true, // Default to randomized questions
+    exam_link_id: generateRandomCode(8),
+    is_randomized: true,
     course_id: '',
     question_bank_id: '',
     total_questions: 20,
-    chapterDistribution: [{ chapter: '', questionCount: 5 }], // Initialize with one chapter
+    chapterDistribution: [],
     difficultyDistribution: {
       easy: 30,
       medium: 50,
@@ -27,6 +34,7 @@ export default function CreateExam() {
     },
   });
   const [studentFile, setStudentFile] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     // Fetch courses when component mounts
@@ -57,6 +65,29 @@ export default function CreateExam() {
     }
   };
 
+  const fetchBankStats = async (bankId) => {
+    if (!bankId) return;
+
+    try {
+      const response = await instructorService.getQuestionBankStats(bankId);
+      setBankStats(response);
+
+      // Update total questions to match bank total
+      setExamData((prev) => ({
+        ...prev,
+        total_questions: response.totalQuestions,
+        // Reset chapter distribution when changing banks
+        chapterDistribution: [],
+      }));
+
+      // Reset selected chapters
+      setSelectedChapters(new Set());
+    } catch (error) {
+      console.error('Error fetching bank statistics:', error);
+      setError('Failed to fetch question bank statistics');
+    }
+  };
+
   // Generate a random alphanumeric code for exam link
   function generateRandomCode(length) {
     const characters = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'; // Removed similar looking characters
@@ -69,17 +100,68 @@ export default function CreateExam() {
     return result;
   }
 
+  // Add validation functions
+  const validateTimeRange = (date, startTime, endTime, duration) => {
+    if (!date || !startTime || !endTime) return false;
+
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+
+    const examDate = new Date(date);
+    const startDateTime = new Date(examDate);
+    startDateTime.setHours(startHour, startMinute);
+
+    const endDateTime = new Date(examDate);
+    endDateTime.setHours(endHour, endMinute);
+
+    // Calculate duration in minutes
+    const durationInMinutes = (endDateTime - startDateTime) / (1000 * 60);
+
+    return {
+      isValid: durationInMinutes >= duration,
+      actualDuration: durationInMinutes,
+    };
+  };
+
+  const validateDifficultyDistribution = () => {
+    const { easy, medium, hard } = examData.difficultyDistribution;
+    const total = easy + medium + hard;
+    return total === 100;
+  };
+
+  const validateChapterDistribution = () => {
+    const totalQuestions = examData.chapterDistribution.reduce(
+      (sum, chapter) => sum + Number(chapter.questionCount),
+      0
+    );
+    return totalQuestions === Number(examData.total_questions);
+  };
+
   const handleExamDataChange = (e) => {
     const { name, value } = e.target;
 
     if (name === 'course_id') {
-      // When course changes, fetch question banks for that course
       fetchQuestionBanks(value);
-      // Reset question bank selection
       setExamData((prev) => ({
         ...prev,
         [name]: value,
         question_bank_id: '',
+        total_questions: 0,
+        chapterDistribution: [],
+      }));
+      setBankStats({ totalQuestions: 0, chapterStats: {} });
+      setSelectedChapters(new Set());
+    } else if (name === 'question_bank_id') {
+      fetchBankStats(value);
+      setExamData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    } else if (name === 'total_questions') {
+      const newValue = Math.min(parseInt(value) || 0, bankStats.totalQuestions);
+      setExamData((prev) => ({
+        ...prev,
+        [name]: newValue,
       }));
     } else {
       setExamData((prev) => ({
@@ -90,8 +172,32 @@ export default function CreateExam() {
   };
 
   const handleChapterChange = (index, field, value) => {
+    if (field === 'chapter') {
+      // Remove old chapter from selected set
+      const oldChapter = examData.chapterDistribution[index]?.chapter;
+      if (oldChapter) {
+        const newSelected = new Set(selectedChapters);
+        newSelected.delete(oldChapter);
+        setSelectedChapters(newSelected);
+      }
+
+      // Add new chapter to selected set
+      if (value) {
+        const newSelected = new Set(selectedChapters);
+        newSelected.add(value);
+        setSelectedChapters(newSelected);
+      }
+    }
+
     setExamData((prev) => {
       const newDistribution = [...prev.chapterDistribution];
+      if (field === 'questionCount') {
+        // Ensure count doesn't exceed available questions for the chapter
+        const chapter = newDistribution[index].chapter;
+        const maxQuestions = bankStats.chapterStats[chapter]?.count || 0;
+        value = Math.min(parseInt(value) || 0, maxQuestions);
+      }
+
       newDistribution[index] = {
         ...newDistribution[index],
         [field]: value,
@@ -118,18 +224,55 @@ export default function CreateExam() {
       ...prev,
       chapterDistribution: [
         ...prev.chapterDistribution,
-        { chapter: '', questionCount: 5 },
+        { chapter: '', questionCount: 0 },
       ],
     }));
   };
 
   const removeChapter = (index) => {
-    setExamData((prev) => ({
-      ...prev,
-      chapterDistribution: prev.chapterDistribution.filter(
-        (_, i) => i !== index
-      ),
-    }));
+    setExamData((prev) => {
+      const newDistribution = [...prev.chapterDistribution];
+      const removedChapter = newDistribution[index].chapter;
+
+      // Remove the chapter from selected chapters
+      if (removedChapter) {
+        const newSelected = new Set(selectedChapters);
+        newSelected.delete(removedChapter);
+        setSelectedChapters(newSelected);
+      }
+
+      // Remove the chapter from distribution
+      newDistribution.splice(index, 1);
+      return {
+        ...prev,
+        chapterDistribution: newDistribution,
+      };
+    });
+  };
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (file.type !== 'text/csv') {
+        setError('Please upload a CSV file');
+        return;
+      }
+      setStudentFile(file);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -151,65 +294,76 @@ export default function CreateExam() {
   };
 
   const validateExamData = () => {
-    if (!examData.exam_name || !examData.description) {
-      setError('Please fill in all required fields');
+    // Required fields validation
+    const requiredFields = {
+      exam_name: 'Exam Name',
+      description: 'Description',
+      exam_date: 'Exam Date',
+      start_time: 'Start Time',
+      end_time: 'End Time',
+      duration: 'Duration',
+      course_id: 'Course',
+      question_bank_id: 'Question Bank',
+    };
+
+    for (const [field, label] of Object.entries(requiredFields)) {
+      if (!examData[field]) {
+        setError(`${label} is required`);
+        return false;
+      }
+    }
+
+    // Time range validation
+    const timeValidation = validateTimeRange(
+      examData.exam_date,
+      examData.start_time,
+      examData.end_time,
+      examData.duration
+    );
+
+    if (!timeValidation.isValid) {
+      setError(
+        `Duration (${
+          examData.duration
+        } minutes) exceeds available time (${Math.floor(
+          timeValidation.actualDuration
+        )} minutes)`
+      );
       return false;
     }
-    if (!examData.start_date || !examData.end_date) {
-      setError('Please select start and end dates');
+
+    // Validate exam date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const examDate = new Date(examData.exam_date);
+    if (examDate < today) {
+      setError('Exam date cannot be in the past');
       return false;
     }
-    if (new Date(examData.start_date) >= new Date(examData.end_date)) {
-      setError('End date must be after start date');
-      return false;
-    }
+
+    // Validate duration
     if (examData.duration < 1) {
       setError('Duration must be at least 1 minute');
       return false;
     }
 
-    if (!examData.course_id) {
-      setError('Please select a course');
-      return false;
-    }
-
-    if (!examData.question_bank_id) {
-      setError('Please select a question bank');
-      return false;
-    }
-
-    if (examData.total_questions < 1) {
-      setError('Total questions must be at least 1');
-      return false;
-    }
-
     // Validate chapter distribution
-    if (examData.chapterDistribution.some((item) => !item.chapter.trim())) {
-      setError('Please fill in all chapter names or remove empty ones');
-      return false;
-    }
-
-    if (examData.chapterDistribution.some((item) => item.questionCount < 1)) {
-      setError('Each chapter must have at least 1 question');
+    if (!validateChapterDistribution()) {
+      setError(
+        'Total questions in chapter distribution must match total questions specified'
+      );
       return false;
     }
 
     // Validate difficulty distribution
-    const totalDifficulty =
-      examData.difficultyDistribution.easy +
-      examData.difficultyDistribution.medium +
-      examData.difficultyDistribution.hard;
-
-    if (totalDifficulty !== 100) {
+    if (!validateDifficultyDistribution()) {
       setError('Difficulty distribution must add up to 100%');
       return false;
     }
 
     // Validate student file
     if (!studentFile) {
-      setError(
-        'Please upload a CSV file with the list of students allowed to take this exam'
-      );
+      setError('Please upload a CSV file with the list of students');
       return false;
     }
 
@@ -224,27 +378,28 @@ export default function CreateExam() {
     setIsLoading(true);
 
     try {
-      // Format dates to ISO string format
+      // Combine date and time for API
+      const examDate = new Date(examData.exam_date);
+      const [startHour, startMinute] = examData.start_time
+        .split(':')
+        .map(Number);
+      const [endHour, endMinute] = examData.end_time.split(':').map(Number);
+
+      const startDateTime = new Date(examDate);
+      startDateTime.setHours(startHour, startMinute);
+
+      const endDateTime = new Date(examDate);
+      endDateTime.setHours(endHour, endMinute);
+
       const formattedExamData = {
         ...examData,
-        start_date: examData.start_date
-          ? new Date(examData.start_date).toISOString()
-          : null,
-        end_date: examData.end_date
-          ? new Date(examData.end_date).toISOString()
-          : null,
-        // Format chapter distribution for the API
+        start_date: startDateTime.toISOString(),
+        end_date: endDateTime.toISOString(),
         chapterDistribution: examData.chapterDistribution.map((item) => ({
           chapter: item.chapter,
           count: parseInt(item.questionCount),
         })),
-        // Include difficulty distribution
-        difficultyDistribution: {
-          easy: examData.difficultyDistribution.easy,
-          medium: examData.difficultyDistribution.medium,
-          hard: examData.difficultyDistribution.hard,
-        },
-        // Include course and question bank IDs
+        difficultyDistribution: examData.difficultyDistribution,
         course_id: examData.course_id,
         question_bank_id: examData.question_bank_id,
         total_questions: parseInt(examData.total_questions),
@@ -252,11 +407,23 @@ export default function CreateExam() {
 
       // Create the exam
       const examResponse = await examService.createExam(formattedExamData);
-      console.log('Exam response:', examResponse);
 
-      if (examResponse && examResponse.data && examResponse.data.exam_id) {
-        // Navigate to the exams list page
-        navigate('/instructor/exams');
+      if (examResponse && examResponse.exam_id) {
+        // Upload student list
+        try {
+          await examService.uploadAllowedStudents(
+            examResponse.exam_id,
+            studentFile
+          );
+          toast.success('Exam created and student list uploaded successfully');
+          navigate('/instructor/exams');
+        } catch (uploadError) {
+          console.error('Error uploading student list:', uploadError);
+          setError(
+            'Exam created but failed to upload student list: ' +
+              (uploadError.message || 'Unknown error')
+          );
+        }
       } else {
         setError('Failed to create exam: Invalid response from server');
       }
@@ -319,15 +486,30 @@ export default function CreateExam() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    Start Date
+                    Exam Date <span className="text-red-600">*</span>
                   </label>
                   <input
-                    type="datetime-local"
-                    name="start_date"
-                    value={examData.start_date}
+                    type="date"
+                    name="exam_date"
+                    value={examData.exam_date}
+                    onChange={handleExamDataChange}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 focus:border-slate-500 focus:ring-slate-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Start Time <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    name="start_time"
+                    value={examData.start_time}
                     onChange={handleExamDataChange}
                     className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 focus:border-slate-500 focus:ring-slate-500"
                     required
@@ -336,12 +518,12 @@ export default function CreateExam() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    End Date
+                    End Time <span className="text-red-600">*</span>
                   </label>
                   <input
-                    type="datetime-local"
-                    name="end_date"
-                    value={examData.end_date}
+                    type="time"
+                    name="end_time"
+                    value={examData.end_time}
                     onChange={handleExamDataChange}
                     className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 focus:border-slate-500 focus:ring-slate-500"
                     required
@@ -413,7 +595,7 @@ export default function CreateExam() {
                         key={bank.question_bank_id}
                         value={bank.question_bank_id}
                       >
-                        {bank.bank_name}
+                        {bank.bank_name} ({bank.total_questions} questions)
                       </option>
                     ))}
                   </select>
@@ -424,16 +606,22 @@ export default function CreateExam() {
                 <label className="block text-sm font-medium text-slate-700">
                   Total Questions <span className="text-red-600">*</span>
                 </label>
-                <input
-                  type="number"
-                  name="total_questions"
-                  value={examData.total_questions}
-                  onChange={handleExamDataChange}
-                  min="1"
-                  className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
-                    focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
-                  required
-                />
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    name="total_questions"
+                    value={examData.total_questions}
+                    onChange={handleExamDataChange}
+                    min="1"
+                    max={bankStats.totalQuestions}
+                    className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
+                      focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                    required
+                  />
+                  <span className="text-sm text-slate-500">
+                    Max: {bankStats.totalQuestions}
+                  </span>
+                </div>
               </div>
 
               <div>
@@ -443,16 +631,25 @@ export default function CreateExam() {
                 <div className="space-y-3">
                   {examData.chapterDistribution.map((item, index) => (
                     <div key={index} className="flex items-center space-x-2">
-                      <input
-                        type="text"
+                      <select
                         value={item.chapter}
                         onChange={(e) =>
                           handleChapterChange(index, 'chapter', e.target.value)
                         }
-                        placeholder="Chapter name"
                         className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
                           focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
-                      />
+                      >
+                        <option value="">Select chapter</option>
+                        {Object.entries(bankStats.chapterStats || {}).map(
+                          ([chapter, stats]) =>
+                            !selectedChapters.has(chapter) ||
+                            item.chapter === chapter ? (
+                              <option key={chapter} value={chapter}>
+                                {chapter} ({stats.count} questions)
+                              </option>
+                            ) : null
+                        )}
+                      </select>
                       <input
                         type="number"
                         value={item.questionCount}
@@ -463,31 +660,33 @@ export default function CreateExam() {
                             e.target.value
                           )
                         }
-                        min="1"
-                        className="w-20 px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
+                        min="0"
+                        max={bankStats.chapterStats[item.chapter]?.count || 0}
+                        className="w-24 px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
                           focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
                       />
-                      {examData.chapterDistribution.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeChapter(index)}
-                          className="p-2 text-red-500 hover:text-red-700 transition-colors duration-200"
+                      <span className="text-sm text-slate-500 w-20">
+                        Max: {bankStats.chapterStats[item.chapter]?.count || 0}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeChapter(index)}
+                        className="p-2 text-red-500 hover:text-red-700 transition-colors duration-200"
+                      >
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
                         >
-                          <svg
-                            className="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </button>
-                      )}
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
                     </div>
                   ))}
                   <button
@@ -659,17 +858,91 @@ export default function CreateExam() {
                 Upload Student List (CSV){' '}
                 <span className="text-red-600">*</span>
               </label>
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleFileChange}
-                className="mt-1 block w-full text-slate-700"
-                required
-              />
-              <p className="text-sm text-slate-500">
-                Upload a CSV file containing the list of students allowed to
-                take this exam.
-              </p>
+
+              <div
+                className={`relative mt-2 flex justify-center rounded-lg border-2 border-dashed px-6 py-10
+                  ${
+                    dragActive
+                      ? 'border-slate-400 bg-slate-50'
+                      : 'border-slate-300'
+                  }
+                  ${studentFile ? 'bg-slate-50' : 'bg-white'}`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                <div className="text-center">
+                  {!studentFile ? (
+                    <>
+                      <svg
+                        className="mx-auto h-12 w-12 text-slate-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      <div className="mt-4 flex text-sm leading-6 text-slate-600">
+                        <label
+                          htmlFor="file-upload"
+                          className="relative cursor-pointer rounded-md font-semibold text-slate-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-slate-500 focus-within:ring-offset-2 hover:text-slate-500"
+                        >
+                          <span>Click to upload</span>
+                          <input
+                            id="file-upload"
+                            name="file-upload"
+                            type="file"
+                            accept=".csv"
+                            className="sr-only"
+                            onChange={handleFileChange}
+                            required
+                          />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className="text-xs leading-5 text-slate-600">
+                        CSV file up to 10MB
+                      </p>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center space-x-2">
+                      <svg
+                        className="h-8 w-8 text-green-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <div className="flex flex-col items-start">
+                        <p className="text-sm font-medium text-slate-900">
+                          {studentFile.name}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setStudentFile(null)}
+                          className="text-xs text-red-600 hover:text-red-800"
+                        >
+                          Remove file
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="mt-2 p-3 bg-slate-50 rounded-md border border-slate-200">
                 <h3 className="text-sm font-medium text-slate-700 mb-1">
                   CSV Format:
