@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { examService } from '../../services/api';
 
@@ -49,54 +50,44 @@ export default function ExamList() {
       setIsLoading(true);
       await examService.deleteExam(examId);
       setShowDeleteConfirm(null);
+      // Show success toast
+      toast.success('Exam deleted successfully');
       // Refresh the exam list
       await fetchExams();
     } catch (err) {
       console.error('Error deleting exam:', err);
       setError(err.message || 'Failed to delete exam');
+      toast.error(err.message || 'Failed to delete exam');
     } finally {
       setIsLoading(false);
       setShowDeleteConfirm(null);
     }
   };
 
-  const canEditOrDelete = (exam) => {
-    console.log('Exam status check:', {
-      examId: exam.exam_id,
-      status: getExamStatus(exam.start_date, exam.end_date),
-      attempts: exam.attempts_made,
-      startDate: exam.start_date,
-      endDate: exam.end_date,
-    });
-
-    return getExamStatus(exam.start_date, exam.end_date) === 'Pending';
-  };
-
-  const getStatusBadgeClass = (startDate, endDate) => {
+  const calculateStatus = (startDate, endDate) => {
     const now = new Date();
     const start = new Date(startDate);
     const end = new Date(endDate);
 
     if (now < start) {
-      return 'bg-yellow-100 text-yellow-800'; // Pending
+      return 'upcoming';
     } else if (now >= start && now <= end) {
-      return 'bg-green-100 text-green-800'; // Active
+      return 'active';
     } else {
-      return 'bg-gray-100 text-gray-800'; // Completed
+      return 'completed';
     }
   };
 
-  const getExamStatus = (startDate, endDate) => {
-    const now = new Date();
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    if (now < start) {
-      return 'Pending';
-    } else if (now >= start && now <= end) {
-      return 'Active';
-    } else {
-      return 'Completed';
+  const getStatusBadgeClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'upcoming':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'completed':
+        return 'bg-slate-100 text-slate-800';
+      default:
+        return 'bg-slate-100 text-slate-800';
     }
   };
 
@@ -212,7 +203,8 @@ export default function ExamList() {
                     colSpan="6"
                     className="px-6 py-4 text-center text-sm text-slate-500"
                   >
-                    No exams found. Click "Create New Exam" to get started.
+                    No exams found. Click &quot;Create New Exam&quot; to get
+                    started.
                   </td>
                 </tr>
               ) : (
@@ -232,12 +224,10 @@ export default function ExamList() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(
-                          exam.start_date,
-                          exam.end_date
+                          calculateStatus(exam.start_date, exam.end_date)
                         )}`}
                       >
-                        {exam.status ||
-                          getExamStatus(exam.start_date, exam.end_date)}
+                        {calculateStatus(exam.start_date, exam.end_date)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
@@ -292,7 +282,8 @@ export default function ExamList() {
                           View
                         </span>
                       </button>
-                      {canEditOrDelete(exam) && (
+                      {calculateStatus(exam.start_date, exam.end_date) ===
+                        'upcoming' && (
                         <button
                           onClick={() => setShowDeleteConfirm(exam.exam_id)}
                           className="text-red-600 hover:text-red-900 transition-colors duration-200"
