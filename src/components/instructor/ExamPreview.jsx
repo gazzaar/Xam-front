@@ -48,27 +48,90 @@ const ExamPreview = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString();
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const formatTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const getStatusBadgeClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'upcoming':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'completed':
+        return 'bg-slate-100 text-slate-800 border-slate-200';
+      default:
+        return 'bg-slate-100 text-slate-800 border-slate-200';
+    }
+  };
+
+  const getDifficultyBadgeClass = (difficulty) => {
+    switch (difficulty?.toLowerCase()) {
+      case 'hard':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'medium':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'easy':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      default:
+        return 'bg-slate-100 text-slate-800 border-slate-200';
+    }
+  };
+
+  const calculateDifficulty = (metadata) => {
+    try {
+      if (!metadata || !metadata.difficultyDistribution) return 'N/A';
+
+      const dist = metadata.difficultyDistribution;
+      const totalQuestions = dist.easy + dist.medium + dist.hard;
+
+      if (!totalQuestions) return 'N/A';
+
+      const hardPercentage = (dist.hard / totalQuestions) * 100;
+      const mediumPercentage = (dist.medium / totalQuestions) * 100;
+
+      if (hardPercentage > 60) return 'Hard';
+      if (hardPercentage + mediumPercentage > 60) return 'Medium';
+      return 'Easy';
+    } catch (error) {
+      console.error('Error calculating difficulty:', error);
+      return 'N/A';
+    }
   };
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-slate-600"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 p-4 rounded-md">
-        <div className="text-red-700 font-medium">
+      <div className="bg-red-50 p-6 rounded-lg shadow-sm">
+        <div className="text-red-800 font-semibold text-lg mb-2">
           Error loading exam preview
         </div>
-        <div className="text-red-600 font-medium">{error}</div>
+        <div className="text-red-700 mb-4">{error}</div>
         <button
           onClick={() => navigate('/instructor/exams')}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 font-bold"
+          className="px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-600 transition-colors duration-200 font-medium"
         >
           Back to Exams
         </button>
@@ -78,11 +141,13 @@ const ExamPreview = () => {
 
   if (!exam) {
     return (
-      <div className="bg-yellow-50 p-4 rounded-md">
-        <div className="text-yellow-700 font-medium">Exam not found</div>
+      <div className="bg-yellow-50 p-6 rounded-lg shadow-sm">
+        <div className="text-yellow-800 font-semibold text-lg mb-4">
+          Exam not found
+        </div>
         <button
           onClick={() => navigate('/instructor/exams')}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 font-bold"
+          className="px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-600 transition-colors duration-200 font-medium"
         >
           Back to Exams
         </button>
@@ -91,186 +156,283 @@ const ExamPreview = () => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">
-          {exam.exam_name} - Preview
-        </h1>
-        <button
-          onClick={() => navigate('/instructor/exams')}
-          className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-        >
-          Back to Exams
-        </button>
-      </div>
-
-      <div className="bg-blue-50 p-4 rounded-md mb-6">
-        <div className="text-blue-700 font-medium">
-          This is a preview of how the exam will appear to students
-        </div>
-        <div className="text-blue-600 text-sm font-medium">
-          Note: Each student will receive a unique set of questions based on the
-          distribution you specified.
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-700 mb-2">
-          Exam Details
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-md">
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Start Date</p>
-            <p className="font-medium">{formatDate(exam.start_date)}</p>
+    <div className="bg-white rounded-lg shadow-md">
+      <div className="border-b border-slate-200">
+        <div className="px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">
+                {exam.exam_name}
+              </h1>
+              <div className="mt-2 flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusBadgeClass(
+                    exam.status
+                  )}`}
+                >
+                  {exam.status || 'Draft'}
+                </span>
+                {exam.exam_metadata && (
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getDifficultyBadgeClass(
+                      calculateDifficulty(exam.exam_metadata)
+                    )}`}
+                  >
+                    {calculateDifficulty(exam.exam_metadata)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/instructor/exams')}
+              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors duration-200 font-medium"
+            >
+              Back to Exams
+            </button>
           </div>
-          <div>
-            <p className="text-sm text-gray-500 font-medium">End Date</p>
-            <p className="font-medium">{formatDate(exam.end_date)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Duration</p>
-            <p className="font-medium">{exam.duration} minutes</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Status</p>
-            <p className="font-medium">{exam.status || 'N/A'}</p>
-          </div>
+          <p className="mt-3 text-slate-600">{exam.description}</p>
         </div>
       </div>
 
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-700 mb-2">
-          Question Distribution
-        </h2>
-        <div className="bg-gray-50 p-4 rounded-md">
-          {exam.question_references && exam.question_references.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {exam.question_references.map((ref, index) => (
-                <div key={index} className="bg-white p-3 rounded shadow-sm">
-                  <p className="font-medium text-gray-800">{ref.chapter}</p>
-                  <p className="text-gray-600 font-medium">
-                    {ref.count} questions
+      {exam.exam_metadata?.difficultyDistribution && (
+        <div className="p-6 border-b border-slate-200">
+          <h2 className="text-xl font-semibold text-slate-800 mb-4">
+            Difficulty Distribution
+          </h2>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+              <p className="text-sm text-emerald-800 font-medium">
+                Easy Questions
+              </p>
+              <p className="text-2xl font-bold text-emerald-700">
+                {exam.exam_metadata.difficultyDistribution.easy || 0}
+              </p>
+            </div>
+            <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+              <p className="text-sm text-orange-800 font-medium">
+                Medium Questions
+              </p>
+              <p className="text-2xl font-bold text-orange-700">
+                {exam.exam_metadata.difficultyDistribution.medium || 0}
+              </p>
+            </div>
+            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+              <p className="text-sm text-red-800 font-medium">Hard Questions</p>
+              <p className="text-2xl font-bold text-red-700">
+                {exam.exam_metadata.difficultyDistribution.hard || 0}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="p-6 space-y-6">
+        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <div className="text-slate-700 font-medium mb-2">
+            This is a preview of how the exam will appear to students
+          </div>
+          <div className="text-slate-600 text-sm">
+            Note: Each student will receive a unique set of questions based on
+            the distribution you specified.
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-slate-800 mb-4">
+            Exam Details
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <p className="text-sm text-slate-500 font-medium mb-1">
+                Exam Date
+              </p>
+              <p className="font-medium text-slate-800">
+                {formatDate(exam.start_date)}
+              </p>
+            </div>
+            <div className="bg-white p-4 rounded-lg border border-slate-200">
+              <p className="text-sm text-slate-500 font-medium mb-1">
+                Duration
+              </p>
+              <p className="font-medium text-slate-800">
+                {exam.duration} minutes
+              </p>
+            </div>
+            <div className="bg-white p-4 rounded-lg border border-slate-200 col-span-full">
+              <p className="text-sm text-slate-500 font-medium mb-2">
+                Exam Time
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500">Start Time</p>
+                  <p className="font-medium text-slate-800">
+                    {formatTime(exam.start_date)}
                   </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">End Time</p>
+                  <p className="font-medium text-slate-800">
+                    {formatTime(exam.end_date)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-slate-800 mb-4">
+            Questions Distribution
+          </h2>
+          <div className="bg-white rounded-lg border border-slate-200">
+            {exam.question_references && exam.question_references.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-4">
+                {exam.question_references.map((ref, index) => (
+                  <div
+                    key={index}
+                    className="bg-slate-50 p-4 rounded-lg border border-slate-200"
+                  >
+                    <p className="font-medium text-slate-800">{ref.chapter}</p>
+                    <p className="text-slate-600">
+                      {ref.count} {ref.count === 1 ? 'question' : 'questions'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 text-slate-600">
+                No question distribution specified
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold text-slate-800 mb-4">
+            Sample Questions
+          </h2>
+          {sampleQuestions.length > 0 ? (
+            <div className="space-y-4">
+              {sampleQuestions.map((question, qIndex) => (
+                <div
+                  key={qIndex}
+                  className="bg-white p-6 rounded-lg border border-slate-200"
+                >
+                  <div className="flex items-start gap-3 mb-4">
+                    <span className="flex-shrink-0 w-8 h-8 bg-slate-700 text-white rounded-full flex items-center justify-center font-medium">
+                      {qIndex + 1}
+                    </span>
+                    <div className="flex-grow">
+                      <div className="font-medium text-slate-800 mb-4">
+                        {question.question_text}
+                      </div>
+
+                      {question.question_type === 'multiple-choice' && (
+                        <div className="space-y-3 ml-4">
+                          {question.answers &&
+                            question.answers.map((answer, aIndex) => (
+                              <div
+                                key={aIndex}
+                                className={`flex items-center p-3 rounded-md ${
+                                  answer.is_correct
+                                    ? 'bg-green-50 border border-green-200'
+                                    : 'bg-slate-50 border border-slate-200'
+                                }`}
+                              >
+                                <div
+                                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 ${
+                                    answer.is_correct
+                                      ? 'border-green-500 bg-green-500'
+                                      : 'border-slate-300'
+                                  }`}
+                                >
+                                  {answer.is_correct && (
+                                    <svg
+                                      className="w-3 h-3 text-white"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                                    </svg>
+                                  )}
+                                </div>
+                                <span
+                                  className={
+                                    answer.is_correct
+                                      ? 'text-green-800 font-medium'
+                                      : 'text-slate-700'
+                                  }
+                                >
+                                  {answer.answer_text}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+
+                      {question.question_type === 'true/false' && (
+                        <div className="space-y-3 ml-4">
+                          {['True', 'False'].map((option) => {
+                            const isCorrect =
+                              (option === 'True' && question.correct_answer) ||
+                              (option === 'False' && !question.correct_answer);
+                            return (
+                              <div
+                                key={option}
+                                className={`flex items-center p-3 rounded-md ${
+                                  isCorrect
+                                    ? 'bg-green-50 border border-green-200'
+                                    : 'bg-slate-50 border border-slate-200'
+                                }`}
+                              >
+                                <div
+                                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 ${
+                                    isCorrect
+                                      ? 'border-green-500 bg-green-500'
+                                      : 'border-slate-300'
+                                  }`}
+                                >
+                                  {isCorrect && (
+                                    <svg
+                                      className="w-3 h-3 text-white"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                                    </svg>
+                                  )}
+                                </div>
+                                <span
+                                  className={
+                                    isCorrect
+                                      ? 'text-green-800 font-medium'
+                                      : 'text-slate-700'
+                                  }
+                                >
+                                  {option}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="mt-3 ml-4 text-sm text-slate-500">
+                        Chapter: {question.chapter || 'N/A'}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-600 font-medium">
-              No question distribution specified
-            </p>
+            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <div className="text-yellow-800 font-medium">
+                No sample questions available for preview
+              </div>
+            </div>
           )}
         </div>
-      </div>
-
-      <div>
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">
-          Sample Questions
-        </h2>
-        {sampleQuestions.length > 0 ? (
-          <div className="space-y-6">
-            {sampleQuestions.map((question, qIndex) => (
-              <div key={qIndex} className="bg-gray-50 p-4 rounded-md">
-                <div className="flex items-start mb-3">
-                  <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 flex-shrink-0">
-                    {qIndex + 1}
-                  </span>
-                  <div className="font-medium text-gray-800">
-                    {question.question_text}
-                  </div>
-                </div>
-
-                {question.question_type === 'multiple-choice' && (
-                  <div className="ml-8 space-y-2">
-                    {question.answers &&
-                      question.answers.map((answer, aIndex) => (
-                        <div key={aIndex} className="flex items-center">
-                          <div
-                            className={`w-5 h-5 rounded-full border flex items-center justify-center mr-2 ${
-                              answer.is_correct
-                                ? 'bg-green-100 border-green-500'
-                                : 'border-gray-300'
-                            }`}
-                          >
-                            {answer.is_correct && (
-                              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                            )}
-                          </div>
-                          <span
-                            className={
-                              answer.is_correct
-                                ? 'text-green-700 font-medium'
-                                : 'text-gray-700'
-                            }
-                          >
-                            {answer.answer_text}
-                          </span>
-                        </div>
-                      ))}
-                  </div>
-                )}
-
-                {question.question_type === 'true/false' && (
-                  <div className="ml-8 space-y-2">
-                    <div className="flex items-center">
-                      <div
-                        className={`w-5 h-5 rounded-full border flex items-center justify-center mr-2 ${
-                          question.correct_answer === true
-                            ? 'bg-green-100 border-green-500'
-                            : 'border-gray-300'
-                        }`}
-                      >
-                        {question.correct_answer === true && (
-                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                        )}
-                      </div>
-                      <span
-                        className={
-                          question.correct_answer === true
-                            ? 'text-green-700 font-medium'
-                            : 'text-gray-700'
-                        }
-                      >
-                        True
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <div
-                        className={`w-5 h-5 rounded-full border flex items-center justify-center mr-2 ${
-                          question.correct_answer === false
-                            ? 'bg-green-100 border-green-500'
-                            : 'border-gray-300'
-                        }`}
-                      >
-                        {question.correct_answer === false && (
-                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                        )}
-                      </div>
-                      <span
-                        className={
-                          question.correct_answer === false
-                            ? 'text-green-700 font-medium'
-                            : 'text-gray-700'
-                        }
-                      >
-                        False
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-2 ml-8 text-sm text-gray-500">
-                  Chapter: {question.chapter || 'N/A'}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-yellow-50 p-4 rounded-md">
-            <div className="text-yellow-700 font-medium">
-              No sample questions available for preview
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
