@@ -207,14 +207,23 @@ export default function CreateExam() {
   };
 
   const handleDifficultyChange = (difficulty, value) => {
-    // Ensure the value is a number between 0 and 100
-    const numValue = Math.min(100, Math.max(0, parseInt(value) || 0));
+    // Ensure the value is a number and not negative
+    const numValue = Math.max(0, parseInt(value) || 0);
+
+    // Calculate what the total would be with the new value
+    const otherDifficulties = Object.entries(examData.difficultyDistribution)
+      .filter(([key]) => key !== difficulty)
+      .reduce((sum, [, val]) => sum + val, 0);
+
+    // Ensure the new total won't exceed 100%
+    const maxAllowed = 100 - otherDifficulties;
+    const finalValue = Math.min(numValue, maxAllowed);
 
     setExamData((prev) => ({
       ...prev,
       difficultyDistribution: {
         ...prev.difficultyDistribution,
-        [difficulty]: numValue,
+        [difficulty]: finalValue,
       },
     }));
   };
@@ -284,13 +293,6 @@ export default function CreateExam() {
       return;
     }
     setStudentFile(file);
-  };
-
-  const regenerateExamLink = () => {
-    setExamData((prev) => ({
-      ...prev,
-      exam_link_id: generateRandomCode(8),
-    }));
   };
 
   const validateExamData = () => {
@@ -378,6 +380,31 @@ export default function CreateExam() {
     setIsLoading(true);
 
     try {
+      // First, validate the student file
+      const formData = new FormData();
+      formData.append('file', studentFile);
+
+      try {
+        // Validate the student file first
+        const validateResponse = await examService.validateStudentFile(
+          formData
+        );
+        if (!validateResponse.success) {
+          setError('Invalid student file: ' + validateResponse.error);
+          setIsLoading(false);
+          return;
+        }
+      } catch (fileError) {
+        console.error('Error validating student file:', fileError);
+        setError(
+          'Failed to validate student file: ' +
+            (fileError.message || 'Unknown error')
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // If file validation passed, proceed with exam creation
       // Combine date and time for API
       const examDate = new Date(examData.exam_date);
       const [startHour, startMinute] = examData.start_time
@@ -405,27 +432,19 @@ export default function CreateExam() {
         total_questions: parseInt(examData.total_questions),
       };
 
-      // Create the exam
-      const examResponse = await examService.createExam(formattedExamData);
+      // Create the exam and upload student list in a single transaction
+      const examResponse = await examService.createExamWithStudents(
+        formattedExamData,
+        studentFile
+      );
 
-      if (examResponse && examResponse.exam_id) {
-        // Upload student list
-        try {
-          await examService.uploadAllowedStudents(
-            examResponse.exam_id,
-            studentFile
-          );
-          toast.success('Exam created and student list uploaded successfully');
-          navigate('/instructor/exams');
-        } catch (uploadError) {
-          console.error('Error uploading student list:', uploadError);
-          setError(
-            'Exam created but failed to upload student list: ' +
-              (uploadError.message || 'Unknown error')
-          );
-        }
+      if (examResponse && examResponse.success) {
+        toast.success('Exam created successfully with student list');
+        navigate('/instructor/exams');
       } else {
-        setError('Failed to create exam: Invalid response from server');
+        setError(
+          'Failed to create exam: ' + (examResponse.error || 'Unknown error')
+        );
       }
     } catch (error) {
       console.error('Error creating exam:', error);
@@ -434,9 +453,6 @@ export default function CreateExam() {
       setIsLoading(false);
     }
   };
-
-  // Calculate the exam URL that students will use
-  const examUrl = `${window.location.origin}/exam/${examData.exam_link_id}`;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -775,75 +791,6 @@ export default function CreateExam() {
                     examData.difficultyDistribution.hard}
                   % (must equal 100%)
                 </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white shadow rounded-lg p-6 border border-slate-200">
-            <h2 className="text-xl font-semibold text-slate-800 mb-4">
-              Exam Access
-            </h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700">
-                  Exam Link
-                </label>
-                <div className="mt-1 flex rounded-md shadow-sm">
-                  <input
-                    type="text"
-                    value={examUrl}
-                    className="flex-grow rounded-l-md border border-r-0 border-slate-300 px-3 py-2 bg-slate-50 text-slate-700"
-                    readOnly
-                  />
-                  <button
-                    type="button"
-                    onClick={regenerateExamLink}
-                    className="inline-flex items-center px-3 py-2 border border-l-0 border-slate-300 rounded-r-md bg-slate-50 text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
-                    title="Generate new link"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                <p className="mt-1 text-sm text-slate-500">
-                  This is the link students will use to access the exam.
-                  Students will need to enter their university ID to verify
-                  access.
-                </p>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  id="is_randomized"
-                  name="is_randomized"
-                  type="checkbox"
-                  checked={examData.is_randomized}
-                  onChange={(e) =>
-                    setExamData((prev) => ({
-                      ...prev,
-                      is_randomized: e.target.checked,
-                    }))
-                  }
-                  className="h-4 w-4 text-slate-600 focus:ring-slate-500 border-slate-300 rounded"
-                />
-                <label
-                  htmlFor="is_randomized"
-                  className="ml-2 block text-sm text-slate-700"
-                >
-                  Randomize question order for each student
-                </label>
               </div>
             </div>
           </div>
