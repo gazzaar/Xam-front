@@ -924,6 +924,23 @@ const questionBankManagementService = {
 // Create examService as an alias for instructorService for backward compatibility
 const examService = instructorService;
 
+// Student Stats Service
+const studentStatsService = {
+  getExamStats: async (examId, studentId) => {
+    try {
+      const params = studentId ? { studentId } : undefined;
+      const response = await api.get(`/student/exam/${examId}/stats`, {
+        params,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.error || 'Failed to fetch exam stats'
+      );
+    }
+  },
+};
+
 export {
   adminService,
   authService,
@@ -932,4 +949,5 @@ export {
   instructorService,
   questionBankManagementService,
   questionBankService,
+  studentStatsService,
 };

@@ -35,6 +35,18 @@ export default function ExamAuth() {
       );
 
       if (response.data.success) {
+        if (response.data.showStats) {
+          // Redirect to stats page
+          navigate(`/exam/${examId}/stats`, {
+            state: {
+              examId: response.data.examId,
+              examLinkId: examId,
+              studentId: response.data.studentId,
+            },
+            replace: true,
+          });
+          return;
+        }
         // Store exam session data
         sessionStorage.setItem(
           'examSession',
@@ -170,8 +182,8 @@ export default function ExamAuth() {
               </div>
             </div>
             <p className="mt-4 text-center text-sm text-slate-600">
-              Contact your instructor if you're having trouble accessing the
-              exam
+              Contact your instructor if you&apos;re having trouble accessing
+              the exam
             </p>
           </div>
         </div>
