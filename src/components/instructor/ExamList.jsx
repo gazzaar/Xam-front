@@ -10,6 +10,7 @@ export default function ExamList() {
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [copiedLinkId, setCopiedLinkId] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     console.log('ExamList component mounted, fetching exams...');
@@ -121,6 +122,39 @@ export default function ExamList() {
       // Reset the copied state after 3 seconds
       setTimeout(() => setCopiedLinkId(null), 3000);
     });
+  };
+
+  const handleExportGrades = async (examId) => {
+    try {
+      setIsExporting(true);
+      const response = await examService.exportStudentGrades(examId);
+
+      // Create a blob from the CSV data
+      const blob = new Blob([response], { type: 'text/csv' });
+
+      // Create a temporary URL for the blob
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `exam_${examId}_grades.csv`);
+
+      // Append link to body, click it, and remove it
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the URL
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Grades exported successfully');
+    } catch (err) {
+      console.error('Error exporting grades:', err);
+      toast.error('Failed to export grades');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (isLoading) {
@@ -326,6 +360,30 @@ export default function ExamList() {
                     </svg>
                     View Details
                   </button>
+
+                  {calculateStatus(exam.start_date, exam.end_date) ===
+                    'completed' && (
+                    <button
+                      onClick={() => handleExportGrades(exam.exam_id)}
+                      disabled={isExporting}
+                      className="w-full inline-flex items-center justify-center px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors duration-200"
+                    >
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      {isExporting ? 'Exporting...' : 'Export Grades'}
+                    </button>
+                  )}
 
                   <button
                     onClick={() => setShowDeleteConfirm(exam.exam_id)}

@@ -758,6 +758,22 @@ const instructorService = {
       throw new Error(error.response?.data?.error || 'Failed to create exam');
     }
   },
+
+  exportStudentGrades: async (examId) => {
+    try {
+      const response = await api.get(
+        `/instructor/exams/${examId}/export-grades`,
+        {
+          responseType: 'blob', // Important: This tells axios to handle the response as a blob
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to export grades'
+      );
+    }
+  },
 };
 
 // Question Bank Service
