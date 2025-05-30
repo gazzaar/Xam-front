@@ -64,6 +64,8 @@ export default function ExamTake() {
         }
       );
 
+      console.log('Received questions data:', response.data);
+
       setExamSession((prev) => ({
         ...prev,
         ...response.data.exam,
@@ -145,6 +147,21 @@ export default function ExamTake() {
       .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const getImageUrl = (url) => {
+    if (!url) return '';
+
+    // Check if it's a Google Drive URL
+    if (url.includes('drive.google.com/file/d/')) {
+      // Extract the file ID
+      const matches = url.match(/\/d\/(.+?)\/view/);
+      if (matches && matches[1]) {
+        return `https://drive.google.com/uc?export=view&id=${matches[1]}`;
+      }
+    }
+
+    return url;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -218,6 +235,32 @@ export default function ExamTake() {
             <p className="text-lg text-slate-700 leading-relaxed">
               {currentQuestionData.question_text}
             </p>
+            {currentQuestionData.image_url && (
+              <div className="mt-4 mb-6 max-w-2xl mx-auto bg-white p-2 rounded-lg shadow-sm border border-slate-200">
+                <div className="relative">
+                  <img
+                    src={getImageUrl(currentQuestionData.image_url)}
+                    alt="Question Image"
+                    className="rounded-lg object-contain w-full max-h-[400px]"
+                    onError={(e) => {
+                      console.error('Image failed to load:', e.target.src);
+                      e.target.onerror = null;
+
+                      // Create a simple error message div
+                      const parent = e.target.parentElement;
+                      const errorDiv = document.createElement('div');
+                      errorDiv.className =
+                        'p-4 text-center text-slate-500 bg-slate-50 rounded-lg';
+                      errorDiv.innerHTML = 'Image could not be loaded';
+
+                      // Hide the failed image and show the error message
+                      e.target.style.display = 'none';
+                      parent.appendChild(errorDiv);
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Options */}

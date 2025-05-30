@@ -340,6 +340,57 @@ const ExamPreview = () => {
                       <div className="font-medium text-slate-800 mb-4">
                         {question.question_text}
                       </div>
+                      {question.image_url && (
+                        <div className="mb-4 max-w-md">
+                          <img
+                            src={(() => {
+                              const url = question.image_url;
+                              if (!url) return '';
+
+                              // For external URLs, use the proxy service
+                              if (url.startsWith('http')) {
+                                return `https://images.weserv.nl/?url=${encodeURIComponent(
+                                  url
+                                )}`;
+                              }
+
+                              // For local URLs, use as is
+                              return url;
+                            })()}
+                            alt="Question"
+                            className="rounded-lg object-contain w-full max-h-[400px]"
+                            onError={(e) => {
+                              console.error(
+                                'Image failed to load:',
+                                e.target.src
+                              );
+                              e.target.onerror = null;
+
+                              // Create a fallback div with error message
+                              const parent = e.target.parentElement;
+                              const fallbackDiv = document.createElement('div');
+                              fallbackDiv.className =
+                                'p-4 text-center text-slate-500 bg-slate-50 rounded-lg';
+                              fallbackDiv.innerHTML = `
+                                <svg class="w-12 h-12 mx-auto mb-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <p>Image could not be loaded</p>
+                                <p class="text-xs mt-1 text-slate-400">Please check if the image URL is valid</p>
+                              `;
+
+                              // Replace the img with the fallback
+                              e.target.style.display = 'none';
+                              parent.appendChild(fallbackDiv);
+
+                              toast.error('Failed to load question image', {
+                                duration: 3000,
+                                icon: '🖼️',
+                              });
+                            }}
+                          />
+                        </div>
+                      )}
 
                       {question.question_type === 'multiple-choice' && (
                         <div className="space-y-3 ml-4">

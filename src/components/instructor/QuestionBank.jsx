@@ -323,6 +323,30 @@ export default function QuestionBank() {
     }
   };
 
+  const truncateUrl = (url) => {
+    if (!url) return '';
+    const maxLength = 40;
+    if (url.length <= maxLength) return url;
+    const start = url.substring(0, 20);
+    const end = url.substring(url.length - 15);
+    return `${start}...${end}`;
+  };
+
+  const getImageUrl = (url) => {
+    if (!url) return '';
+
+    // Check if it's a Google Drive URL
+    if (url.includes('drive.google.com/file/d/')) {
+      // Extract the file ID
+      const matches = url.match(/\/d\/(.+?)\/view/);
+      if (matches && matches[1]) {
+        return `https://drive.google.com/uc?export=view&id=${matches[1]}`;
+      }
+    }
+
+    return url;
+  };
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex flex-wrap -mx-2">
@@ -498,8 +522,32 @@ export default function QuestionBank() {
                   className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50"
                 >
                   <div className="flex justify-between">
-                    <p className="text-slate-900">{question.question_text}</p>
-                    <div className="flex space-x-2">
+                    <div className="flex-grow">
+                      <p className="text-slate-900">{question.question_text}</p>
+                      {question.image_url && (
+                        <div className="mt-2 max-w-md">
+                          <img
+                            src={getImageUrl(question.image_url)}
+                            alt="Question"
+                            className="rounded-lg object-cover max-h-48 w-full"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              // Create a simple error message div
+                              const parent = e.target.parentElement;
+                              const errorDiv = document.createElement('div');
+                              errorDiv.className =
+                                'p-4 text-center text-slate-500 bg-slate-50 rounded-lg';
+                              errorDiv.innerHTML = 'Image could not be loaded';
+
+                              // Hide the failed image and show the error message
+                              e.target.style.display = 'none';
+                              parent.appendChild(errorDiv);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex space-x-2 ml-4">
                       <button
                         onClick={() => handleEditQuestion(question)}
                         className="text-slate-600 hover:text-slate-800"
@@ -566,8 +614,17 @@ export default function QuestionBank() {
                       Points: {question.points}
                     </p>
                     {question.image_url && (
-                      <p className="text-sm text-slate-500">
-                        Image URL: {question.image_url}
+                      <p className="text-sm text-slate-500 flex items-center">
+                        <span className="mr-2">Image URL:</span>
+                        <a
+                          href={question.image_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:text-blue-600 truncate max-w-[300px]"
+                          title={question.image_url}
+                        >
+                          {truncateUrl(question.image_url)}
+                        </a>
                       </p>
                     )}
                     {question.chapter && (
@@ -725,18 +782,42 @@ export default function QuestionBank() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Image URL (optional)
                   </label>
-                  <input
-                    type="text"
-                    value={questionFormData.image_url}
-                    onChange={(e) =>
-                      setQuestionFormData({
-                        ...questionFormData,
-                        image_url: e.target.value,
-                      })
-                    }
-                    className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
-                    placeholder="Enter image URL..."
-                  />
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={questionFormData.image_url}
+                      onChange={(e) =>
+                        setQuestionFormData({
+                          ...questionFormData,
+                          image_url: e.target.value,
+                        })
+                      }
+                      className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
+                      placeholder="Enter image URL..."
+                    />
+                    {questionFormData.image_url && (
+                      <div className="mt-2 max-w-md mx-auto">
+                        <img
+                          src={questionFormData.image_url}
+                          alt="Question Preview"
+                          className="rounded-lg object-cover max-h-48 w-full"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            // Create a simple error message div
+                            const parent = e.target.parentElement;
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className =
+                              'p-4 text-center text-slate-500 bg-slate-50 rounded-lg';
+                            errorDiv.innerHTML = 'Image could not be loaded';
+
+                            // Hide the failed image and show the error message
+                            e.target.style.display = 'none';
+                            parent.appendChild(errorDiv);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -1126,18 +1207,42 @@ export default function QuestionBank() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Image URL (optional)
                   </label>
-                  <input
-                    type="text"
-                    value={questionFormData.image_url}
-                    onChange={(e) =>
-                      setQuestionFormData({
-                        ...questionFormData,
-                        image_url: e.target.value,
-                      })
-                    }
-                    className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
-                    placeholder="Enter image URL..."
-                  />
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={questionFormData.image_url}
+                      onChange={(e) =>
+                        setQuestionFormData({
+                          ...questionFormData,
+                          image_url: e.target.value,
+                        })
+                      }
+                      className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
+                      placeholder="Enter image URL..."
+                    />
+                    {questionFormData.image_url && (
+                      <div className="mt-2 max-w-md mx-auto">
+                        <img
+                          src={questionFormData.image_url}
+                          alt="Question Preview"
+                          className="rounded-lg object-cover max-h-48 w-full"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            // Create a simple error message div
+                            const parent = e.target.parentElement;
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className =
+                              'p-4 text-center text-slate-500 bg-slate-50 rounded-lg';
+                            errorDiv.innerHTML = 'Image could not be loaded';
+
+                            // Hide the failed image and show the error message
+                            e.target.style.display = 'none';
+                            parent.appendChild(errorDiv);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
