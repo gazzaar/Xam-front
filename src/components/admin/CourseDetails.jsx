@@ -189,7 +189,13 @@ export default function CourseDetails() {
                               <span className="mr-3">
                                 Type: {question.question_type}
                               </span>
-                              <span>Points: {question.points}</span>
+                              <span className="mr-3">
+                                Points: {question.points}
+                              </span>
+                              <span>
+                                Created by: {question.created_by.first_name}{' '}
+                                {question.created_by.last_name}
+                              </span>
                             </div>
                           </div>
                         ))}

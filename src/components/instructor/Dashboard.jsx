@@ -318,7 +318,7 @@ export default function InstructorDashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-8">My Exam Dashboard</h1>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -326,7 +326,7 @@ export default function InstructorDashboard() {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-slate-800">
-              Active Exams
+              My Active Exams
             </h2>
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
               <svg
@@ -375,7 +375,7 @@ export default function InstructorDashboard() {
           <p className="mt-4 text-3xl font-bold text-slate-800">
             {stats?.students_today || 0}
           </p>
-          <p className="mt-1 text-sm text-slate-600">Taking exams today</p>
+          <p className="mt-1 text-sm text-slate-600">Taking my exams today</p>
         </div>
 
         {/* Average Score Card */}
@@ -403,14 +403,14 @@ export default function InstructorDashboard() {
           <p className="mt-4 text-3xl font-bold text-slate-800">
             {stats?.average_score?.toFixed(1) || '0.0'}%
           </p>
-          <p className="mt-1 text-sm text-slate-600">Across all exams</p>
+          <p className="mt-1 text-sm text-slate-600">Across my exams</p>
         </div>
 
         {/* Total Exams Card */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-slate-800">
-              Total Exams
+              My Total Exams
             </h2>
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100">
               <svg
@@ -442,7 +442,7 @@ export default function InstructorDashboard() {
           value={selectedExam}
           onChange={(e) => setSelectedExam(e.target.value)}
         >
-          <option value="overall">Overall Statistics</option>
+          <option value="overall">My Overall Statistics</option>
           {stats?.exam_stats?.map((exam) => (
             <option key={exam.exam_id} value={exam.exam_id}>
               {exam.exam_name}

@@ -561,29 +561,37 @@ export default function QuestionBank() {
                       })}
                     </div>
                   )}
-                  <p className="text-sm text-slate-500">
-                    Points: {question.points}
-                  </p>
-                  {question.image_url && (
+                  <div className="mt-2 space-y-1">
                     <p className="text-sm text-slate-500">
-                      Image URL: {question.image_url}
+                      Points: {question.points}
                     </p>
-                  )}
-                  {question.chapter && (
-                    <p className="text-sm text-slate-500">
-                      Chapter: {question.chapter}
-                    </p>
-                  )}
-                  {question.explanation && (
-                    <p className="text-sm text-slate-500">
-                      Explanation: {question.explanation}
-                    </p>
-                  )}
-                  {question.difficulty && (
-                    <p className="text-sm text-slate-500">
-                      Difficulty: {question.difficulty}
-                    </p>
-                  )}
+                    {question.image_url && (
+                      <p className="text-sm text-slate-500">
+                        Image URL: {question.image_url}
+                      </p>
+                    )}
+                    {question.chapter && (
+                      <p className="text-sm text-slate-500">
+                        Chapter: {question.chapter}
+                      </p>
+                    )}
+                    {question.explanation && (
+                      <p className="text-sm text-slate-500">
+                        Explanation: {question.explanation}
+                      </p>
+                    )}
+                    {question.difficulty && (
+                      <p className="text-sm text-slate-500">
+                        Difficulty: {question.difficulty}
+                      </p>
+                    )}
+                    {question.created_by_first_name && (
+                      <p className="text-sm text-slate-500">
+                        Created by: {question.created_by_first_name}{' '}
+                        {question.created_by_last_name}
+                      </p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
