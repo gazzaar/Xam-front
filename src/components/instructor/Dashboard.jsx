@@ -47,6 +47,15 @@ export default function InstructorDashboard() {
                 dataLabels: {
                   position: 'top',
                 },
+                colors: {
+                  ranges: [
+                    {
+                      from: 0,
+                      to: Infinity,
+                      color: '#4169E1',
+                    },
+                  ],
+                },
               },
             },
             dataLabels: {
@@ -79,6 +88,7 @@ export default function InstructorDashboard() {
                 fontSize: '18px',
               },
             },
+            colors: ['#4169E1'],
           },
           series: [
             {
@@ -147,7 +157,7 @@ export default function InstructorDashboard() {
               position: 'top',
               horizontalAlign: 'center',
             },
-            colors: ['#4ade80', '#f87171'],
+            colors: ['#00A550', '#DC343B'],
           },
           series: [
             {
@@ -195,6 +205,15 @@ export default function InstructorDashboard() {
                   dataLabels: {
                     position: 'top',
                   },
+                  colors: {
+                    ranges: [
+                      {
+                        from: 0,
+                        to: Infinity,
+                        color: '#4169E1',
+                      },
+                    ],
+                  },
                 },
               },
               dataLabels: {
@@ -227,6 +246,7 @@ export default function InstructorDashboard() {
                   fontSize: '18px',
                 },
               },
+              colors: ['#4169E1'],
             },
             series: [
               {
@@ -288,7 +308,7 @@ export default function InstructorDashboard() {
                 position: 'top',
                 horizontalAlign: 'center',
               },
-              colors: ['#4ade80', '#f87171'],
+              colors: ['#00A550', '#DC343B'],
             },
             series: [
               {

@@ -133,9 +133,9 @@ export default function ExamComplete() {
       },
       fill: {
         opacity: 1,
-        colors: ['#22c55e', '#ef4444'],
+        colors: ['#00A550', '#DC343B'],
       },
-      colors: ['#22c55e', '#ef4444'],
+      colors: ['#00A550', '#DC343B'],
       tooltip: {
         y: {
           formatter: function (val) {
@@ -279,8 +279,8 @@ export default function ExamComplete() {
                       <span
                         className={`font-medium ${
                           displayScore > stats.class.avg_score
-                            ? 'text-green-600'
-                            : 'text-red-600'
+                            ? 'text-[#00A550]'
+                            : 'text-[#DC343B]'
                         }`}
                       >
                         {(displayScore - stats.class.avg_score).toFixed(1)}%
