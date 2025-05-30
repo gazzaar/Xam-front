@@ -20,6 +20,10 @@ import InstructorLayout from './components/instructor/InstructorLayout';
 import QuestionBank from './components/instructor/QuestionBank';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
+import ExamAuth from './components/student/ExamAuth';
+import ExamComplete from './components/student/ExamComplete';
+import ExamStart from './components/student/ExamStart';
+import ExamTake from './components/student/ExamTake';
 import './styles/custom.css';
 import theme from './theme';
 
@@ -53,6 +57,12 @@ export default function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
+
+          {/* Student Exam Routes */}
+          <Route path="/exam/:examId" element={<ExamAuth />} />
+          <Route path="/exam/:examId/start" element={<ExamStart />} />
+          <Route path="/exam/:examId/take" element={<ExamTake />} />
+          <Route path="/exam-complete" element={<ExamComplete />} />
 
           {/* Admin Routes */}
           <Route

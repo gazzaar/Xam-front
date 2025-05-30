@@ -427,7 +427,7 @@ const instructorService = {
   uploadAllowedStudents: async (examId, file) => {
     try {
       const formData = new FormData();
-      formData.append('file', file); // Changed to 'file' to match the multer field name in the route
+      formData.append('students', file); // Changed from 'file' to 'students' to match backend expectation
 
       const response = await api.post(
         `/instructor/exams/${examId}/students/upload`,
@@ -570,6 +570,20 @@ const instructorService = {
     }
   },
 
+  getQuestionBankStats: async (bankId) => {
+    try {
+      const response = await api.get(
+        `/instructor/question-banks/${bankId}/stats`
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.error ||
+          'Failed to fetch question bank statistics'
+      );
+    }
+  },
+
   updateQuestionBank: async (questionBankId, questionBankData) => {
     try {
       const response = await api.put(
@@ -699,6 +713,46 @@ const instructorService = {
       throw new Error(
         error.response?.data?.message || 'Failed to delete question'
       );
+    }
+  },
+
+  validateStudentFile: async (formData) => {
+    try {
+      const response = await api.post(
+        '/instructor/validate-student-file',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.error || 'Failed to validate student file'
+      );
+    }
+  },
+
+  createExamWithStudents: async (examData, studentFile) => {
+    try {
+      const formData = new FormData();
+      formData.append('examData', JSON.stringify(examData));
+      formData.append('students', studentFile);
+
+      const response = await api.post(
+        '/instructor/exams/create-with-students',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || 'Failed to create exam');
     }
   },
 };

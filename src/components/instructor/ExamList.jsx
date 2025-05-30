@@ -48,6 +48,23 @@ export default function ExamList() {
 
   const handleDelete = async (examId) => {
     try {
+      // Get the exam status before proceeding
+      const examToDelete = exams.find((exam) => exam.exam_id === examId);
+      if (!examToDelete) {
+        toast.error('Exam not found');
+        return;
+      }
+
+      const status = calculateStatus(
+        examToDelete.start_date,
+        examToDelete.end_date
+      );
+      if (status === 'active') {
+        toast.error('Cannot delete an active exam');
+        setShowDeleteConfirm(null);
+        return;
+      }
+
       setIsLoading(true);
       await examService.deleteExam(examId);
       setShowDeleteConfirm(null);
@@ -164,217 +181,192 @@ export default function ExamList() {
         </Link>
       </div>
 
-      <div className="bg-white shadow overflow-hidden rounded-lg border border-slate-200">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
-                >
-                  Exam Name
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
-                >
-                  Start Date
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
-                >
-                  End Date
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
-                >
-                  Questions
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
-                >
-                  Exam Link
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-slate-200">
-              {exams.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="7"
-                    className="px-6 py-4 text-center text-sm text-slate-500"
-                  >
-                    No exams found. Click &quot;Create New Exam&quot; to get
-                    started.
-                  </td>
-                </tr>
-              ) : (
-                exams.map((exam) => (
-                  <tr
-                    key={exam.exam_id}
-                    className="hover:bg-slate-50 transition-colors duration-150"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-slate-800">
-                        {exam.exam_name}
-                      </div>
-                      <div className="text-sm text-slate-500">
+      {exams.length === 0 ? (
+        <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <p className="text-slate-600">
+            No exams found. Click &quot;Create New Exam&quot; to get started.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1">
+          {exams.map((exam) => (
+            <div
+              key={exam.exam_id}
+              className="bg-white rounded-lg shadow-md border border-slate-200 p-6 hover:shadow-lg transition-shadow duration-200"
+            >
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                {/* Left section - Exam details */}
+                <div className="flex-grow space-y-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-800">
+                      {exam.exam_name}
+                    </h2>
+                    {exam.description && (
+                      <p className="text-sm text-slate-600 mt-1">
                         {exam.description}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-slate-600">
+                        Status
+                      </p>
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(
+                        className={`mt-1 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(
                           calculateStatus(exam.start_date, exam.end_date)
                         )}`}
                       >
                         {calculateStatus(exam.start_date, exam.end_date)}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                      {formatDate(exam.start_date)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                      {formatDate(exam.end_date)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-slate-600">
-                        {exam.question_references &&
-                          exam.question_references.map((ref, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center space-x-1 mb-1"
-                            >
-                              <span className="font-medium">
-                                {ref.chapter}:
-                              </span>
-                              <span>{ref.count} questions</span>
-                            </div>
-                          ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center justify-center">
-                        <button
-                          onClick={() => copyExamLink(exam.exam_link_id)}
-                          className="inline-flex items-center px-3 py-1.5 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors duration-200"
-                        >
-                          {copiedLinkId === exam.exam_link_id ? (
-                            <>
-                              <svg
-                                className="w-4 h-4 mr-1"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                              Copied!
-                            </>
-                          ) : (
-                            <>
-                              <svg
-                                className="w-4 h-4 mr-1"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
-                                />
-                              </svg>
-                              Copy Link
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() =>
-                          navigate(`/instructor/exams/${exam.exam_id}`)
-                        }
-                        className="text-slate-600 hover:text-slate-900 mr-4 transition-colors duration-200"
-                      >
-                        <span className="flex items-center">
-                          <svg
-                            className="w-4 h-4 mr-1"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-slate-600">
+                        Duration
+                      </p>
+                      <p className="text-sm text-slate-800">
+                        {formatDate(exam.start_date)} -{' '}
+                        {formatDate(exam.end_date)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium text-slate-600 mb-2">
+                      Questions Distribution
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {exam.question_references &&
+                        exam.question_references.map((ref, index) => (
+                          <div
+                            key={index}
+                            className="bg-slate-50 rounded-md p-2 text-sm"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                            />
-                          </svg>
-                          View
-                        </span>
-                      </button>
-                      {calculateStatus(exam.start_date, exam.end_date) ===
-                        'upcoming' && (
-                        <button
-                          onClick={() => setShowDeleteConfirm(exam.exam_id)}
-                          className="text-red-600 hover:text-red-900 transition-colors duration-200"
+                            <span className="font-medium text-slate-700">
+                              {ref.chapter}:
+                            </span>
+                            <span className="text-slate-600 ml-1">
+                              {ref.count} questions
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right section - Actions */}
+                <div className="flex flex-col gap-3 min-w-[200px]">
+                  <button
+                    onClick={() => copyExamLink(exam.exam_link_id)}
+                    className="w-full inline-flex items-center justify-center px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors duration-200"
+                  >
+                    {copiedLinkId === exam.exam_link_id ? (
+                      <>
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
                         >
-                          <span className="flex items-center">
-                            <svg
-                              className="w-4 h-4 mr-1"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                            Delete
-                          </span>
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+                          />
+                        </svg>
+                        Copy Link
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      navigate(`/instructor/exams/${exam.exam_id}`)
+                    }
+                    className="w-full inline-flex items-center justify-center px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors duration-200"
+                  >
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                    View Details
+                  </button>
+
+                  <button
+                    onClick={() => setShowDeleteConfirm(exam.exam_id)}
+                    disabled={
+                      calculateStatus(exam.start_date, exam.end_date) ===
+                      'active'
+                    }
+                    className={`w-full inline-flex items-center justify-center px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 transition-colors duration-200 ${
+                      calculateStatus(exam.start_date, exam.end_date) ===
+                      'active'
+                        ? 'opacity-50 cursor-not-allowed'
+                        : ''
+                    }`}
+                    title={
+                      calculateStatus(exam.start_date, exam.end_date) ===
+                      'active'
+                        ? 'Cannot delete an active exam'
+                        : 'Delete exam'
+                    }
+                  >
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }

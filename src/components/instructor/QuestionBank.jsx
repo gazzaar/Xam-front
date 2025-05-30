@@ -414,7 +414,7 @@ export default function QuestionBank() {
                           {bank.bank_name}
                         </h3>
                         <p className="text-sm text-slate-500">
-                          Questions: {bank.question_count || 0}
+                          Questions: {bank.total_questions || 0}
                         </p>
                         {bank.description && (
                           <p className="mt-2 text-sm text-slate-600 line-clamp-2">
