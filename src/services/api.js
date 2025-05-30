@@ -670,12 +670,6 @@ const instructorService = {
   // Delete question from question bank
   deleteQuestionFromQuestionBank: async (questionBankId, questionId) => {
     try {
-      console.log(
-        'Deleting question from bank:',
-        questionBankId,
-        'Question ID:',
-        questionId
-      );
       const response = await api.delete(
         `/instructor/question-banks/${questionBankId}/questions/${questionId}`
       );
@@ -683,7 +677,7 @@ const instructorService = {
     } catch (error) {
       console.error('Error deleting question from bank:', error);
       throw new Error(
-        error.response?.data?.message || 'Failed to delete question'
+        error.response?.data?.error || 'Failed to delete question'
       );
     }
   },
@@ -771,6 +765,28 @@ const instructorService = {
     } catch (error) {
       throw new Error(
         error.response?.data?.message || 'Failed to export grades'
+      );
+    }
+  },
+
+  importQuestionsFromJson: async (questionBankId, jsonFile) => {
+    try {
+      const formData = new FormData();
+      formData.append('questions', jsonFile);
+
+      const response = await api.post(
+        `/instructor/question-banks/${questionBankId}/import`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.error || 'Failed to import questions'
       );
     }
   },

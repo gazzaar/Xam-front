@@ -17,6 +17,17 @@ export default function Courses() {
     description: '',
     num_chapters: 1,
   });
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    show: false,
+    course: null,
+  });
+
+  const [removeInstructorConfirmation, setRemoveInstructorConfirmation] =
+    useState({
+      show: false,
+      courseId: null,
+      instructor: null,
+    });
 
   useEffect(() => {
     fetchCourses();
@@ -87,38 +98,62 @@ export default function Courses() {
   };
 
   const handleRemoveInstructor = async (courseId, instructorId) => {
-    if (
-      !window.confirm(
-        'Are you sure you want to remove this instructor from the course?'
-      )
-    ) {
-      return;
-    }
+    const course = courses.find((c) => c.course_id === courseId);
+    const instructor = course?.assigned_instructors?.find(
+      (i) => i.user_id === instructorId
+    );
 
+    setRemoveInstructorConfirmation({
+      show: true,
+      courseId,
+      instructor,
+    });
+  };
+
+  const confirmRemoveInstructor = async () => {
+    const { courseId, instructor } = removeInstructorConfirmation;
+    if (!courseId || !instructor) return;
+
+    setIsLoading(true);
     try {
-      await adminService.removeInstructorFromCourse(courseId, instructorId);
+      await adminService.removeInstructorFromCourse(
+        courseId,
+        instructor.user_id
+      );
       toast.success('Instructor removed successfully');
       fetchCourses();
     } catch (err) {
       toast.error(err.message || 'Failed to remove instructor');
+    } finally {
+      setIsLoading(false);
+      setRemoveInstructorConfirmation({
+        show: false,
+        courseId: null,
+        instructor: null,
+      });
     }
   };
 
-  const handleDeleteCourse = async (courseId, courseName) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete the course "${courseName}"? This action cannot be undone and will delete all related data including question banks, questions, and exam records.`
-      )
-    ) {
-      return;
-    }
+  const handleDeleteCourse = async (courseId) => {
+    setDeleteConfirmation({
+      show: true,
+      course: courses.find((c) => c.course_id === courseId),
+    });
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteConfirmation.course) return;
+
+    setIsLoading(true);
     try {
-      await adminService.deleteCourse(courseId);
+      await adminService.deleteCourse(deleteConfirmation.course.course_id);
       toast.success('Course deleted successfully');
       fetchCourses();
     } catch (err) {
       toast.error(err.message || 'Failed to delete course');
+    } finally {
+      setIsLoading(false);
+      setDeleteConfirmation({ show: false, course: null });
     }
   };
 
@@ -256,9 +291,7 @@ export default function Courses() {
                       View Details
                     </button>
                     <button
-                      onClick={() =>
-                        handleDeleteCourse(course.course_id, course.course_name)
-                      }
+                      onClick={() => handleDeleteCourse(course.course_id)}
                       className="text-red-600 hover:text-red-900 font-medium"
                     >
                       Delete
@@ -450,6 +483,279 @@ export default function Courses() {
             </div>
           </div>
         )}
+
+        {/* Delete Course Confirmation Modal */}
+        {deleteConfirmation.show && deleteConfirmation.course && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 transform transition-all">
+              <div className="mb-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    Confirm Course Deletion
+                  </h3>
+                  <button
+                    onClick={() =>
+                      setDeleteConfirmation({ show: false, course: null })
+                    }
+                    className="text-slate-400 hover:text-slate-500 transition-colors duration-200"
+                  >
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="mt-4">
+                  <div className="bg-red-50 text-red-800 p-4 rounded-lg mb-4">
+                    <p className="text-sm font-medium">
+                      Are you sure you want to delete this course?
+                    </p>
+                    <div className="mt-2 text-sm text-red-700">
+                      <p className="font-semibold mb-1">Course Details:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>Name: {deleteConfirmation.course.course_name}</li>
+                        <li>Code: {deleteConfirmation.course.course_code}</li>
+                        <li>
+                          Question Banks:{' '}
+                          {deleteConfirmation.course.question_banks_count}
+                        </li>
+                        <li>
+                          Assigned Instructors:{' '}
+                          {deleteConfirmation.course.assigned_instructors
+                            ?.length || 0}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-600">
+                    This action cannot be undone. Deleting this course will
+                    permanently remove:
+                  </p>
+                  <ul className="mt-2 text-sm text-slate-600 list-disc list-inside space-y-1">
+                    <li>All question banks associated with this course</li>
+                    <li>All questions within those question banks</li>
+                    <li>All exam records and student results</li>
+                    <li>All instructor assignments to this course</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDeleteConfirmation({ show: false, course: null })
+                  }
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 flex items-center"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-4 h-4 mr-1.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                      Delete Course
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Remove Instructor Confirmation Modal */}
+        {removeInstructorConfirmation.show &&
+          removeInstructorConfirmation.instructor && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 transform transition-all">
+                <div className="mb-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-slate-800">
+                      Confirm Instructor Removal
+                    </h3>
+                    <button
+                      onClick={() =>
+                        setRemoveInstructorConfirmation({
+                          show: false,
+                          courseId: null,
+                          instructor: null,
+                        })
+                      }
+                      className="text-slate-400 hover:text-slate-500 transition-colors duration-200"
+                    >
+                      <svg
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="bg-red-50 text-red-800 p-4 rounded-lg mb-4">
+                      <p className="text-sm font-medium">
+                        Are you sure you want to remove this instructor's
+                        assignment?
+                      </p>
+                      <div className="mt-2 text-sm text-red-700">
+                        <p className="font-semibold mb-1">
+                          Instructor Details:
+                        </p>
+                        <ul className="list-disc list-inside space-y-1">
+                          <li>
+                            Name:{' '}
+                            {removeInstructorConfirmation.instructor.first_name}{' '}
+                            {removeInstructorConfirmation.instructor.last_name}
+                          </li>
+                          <li>
+                            Course:{' '}
+                            {
+                              courses.find(
+                                (c) =>
+                                  c.course_id ===
+                                  removeInstructorConfirmation.courseId
+                              )?.course_name
+                            }
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      This will remove the instructor's access to:
+                    </p>
+                    <ul className="mt-2 text-sm text-slate-600 list-disc list-inside space-y-1">
+                      <li>Course materials and content</li>
+                      <li>Question banks associated with this course</li>
+                      <li>Exam management for this course</li>
+                      <li>Student results and statistics</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRemoveInstructorConfirmation({
+                        show: false,
+                        courseId: null,
+                        instructor: null,
+                      })
+                    }
+                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmRemoveInstructor}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 flex items-center"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                        Removing...
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-4 h-4 mr-1.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"
+                          />
+                        </svg>
+                        Remove Instructor
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
       </div>
     </div>
   );

@@ -316,26 +316,28 @@ export default function ExamTake() {
             >
               Previous
             </button>
-            <div className="flex space-x-2">
-              {questions.map((_, index) => {
-                const isAnswered = answers[questions[index].question_id];
-                const isCurrent = currentQuestion === index;
-                return (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentQuestion(index)}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200 ${
-                      isCurrent
-                        ? 'bg-slate-700 text-white shadow-md'
-                        : isAnswered
-                        ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {index + 1}
-                  </button>
-                );
-              })}
+            <div className="flex-1 mx-4 max-h-32 overflow-y-auto">
+              <div className="flex flex-wrap justify-center gap-2">
+                {questions.map((_, index) => {
+                  const isAnswered = answers[questions[index].question_id];
+                  const isCurrent = currentQuestion === index;
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentQuestion(index)}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200 ${
+                        isCurrent
+                          ? 'bg-slate-700 text-white shadow-md'
+                          : isAnswered
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             {currentQuestion === questions.length - 1 ? (
               <button

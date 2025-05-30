@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { instructorService } from '../../services/api';
@@ -20,6 +20,7 @@ export default function QuestionBank() {
     show: false,
     type: '',
     id: null,
+    item: null,
   });
   const [questionFormData, setQuestionFormData] = useState({
     question_text: '',
@@ -35,6 +36,13 @@ export default function QuestionBank() {
     bank_name: '',
     description: '',
   });
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importStatus, setImportStatus] = useState({
+    loading: false,
+    error: null,
+    success: null,
+  });
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -179,29 +187,37 @@ export default function QuestionBank() {
   };
 
   const handleDeleteQuestion = async (question) => {
-    // Add confirmation dialog
-    if (
-      !window.confirm(
-        `Are you sure you want to delete this question: "${question.question_text}"?`
-      )
-    ) {
-      return; // User canceled the deletion
-    }
+    setDeleteConfirmation({
+      show: true,
+      type: 'question',
+      id: question.question_id,
+      item: question,
+    });
+  };
 
+  const confirmDelete = async () => {
+    const { type, id, item } = deleteConfirmation;
     setIsLoading(true);
+
     try {
-      await instructorService.deleteQuestionFromQuestionBank(
-        selectedBank.question_bank_id,
-        question.question_id
-      );
-      // Refresh questions list
-      await fetchQuestions(selectedBank.question_bank_id);
-      toast.success('Question deleted successfully');
+      if (type === 'question') {
+        await instructorService.deleteQuestionFromQuestionBank(
+          selectedBank.question_bank_id,
+          id
+        );
+        await fetchQuestions(selectedBank.question_bank_id);
+        toast.success('Question deleted successfully');
+      } else if (type === 'questionBank') {
+        await handleDeleteQuestionBank(id);
+      }
     } catch (error) {
-      console.error('Error deleting question:', error);
-      toast.error(error.message || 'Failed to delete question');
+      console.error(`Error deleting ${type}:`, error);
+      toast.error(error.message, {
+        duration: 6000,
+      });
     } finally {
       setIsLoading(false);
+      setDeleteConfirmation({ show: false, type: '', id: null, item: null });
     }
   };
 
@@ -292,7 +308,7 @@ export default function QuestionBank() {
       toast.error(error.message || 'Failed to delete question bank');
     } finally {
       setIsLoading(false);
-      setDeleteConfirmation({ show: false, type: '', id: null });
+      setDeleteConfirmation({ show: false, type: '', id: null, item: null });
     }
   };
 
@@ -345,6 +361,99 @@ export default function QuestionBank() {
     }
 
     return url;
+  };
+
+  const handleImportQuestions = async (event) => {
+    event.preventDefault();
+    const file = fileInputRef.current.files[0];
+
+    if (!file) {
+      toast.error('Please select a JSON file');
+      return;
+    }
+
+    if (!selectedBank) {
+      toast.error('Please select a question bank first');
+      return;
+    }
+
+    setImportStatus({ loading: true, error: null, success: null });
+
+    try {
+      const result = await instructorService.importQuestionsFromJson(
+        selectedBank.question_bank_id,
+        file
+      );
+
+      setImportStatus({
+        loading: false,
+        error: null,
+        success: `Successfully imported ${result.count} questions`,
+      });
+
+      // Refresh questions list
+      await fetchQuestions(selectedBank.question_bank_id);
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+      toast.success(`Successfully imported ${result.count} questions`);
+      setShowImportModal(false);
+    } catch (error) {
+      console.error('Error importing questions:', error);
+      setImportStatus({
+        loading: false,
+        error: error.message || 'Failed to import questions',
+        success: null,
+      });
+    }
+  };
+
+  const downloadSampleJson = () => {
+    const sampleData = {
+      questions: [
+        {
+          question_text: 'What is the capital of France?',
+          question_type: 'multiple-choice',
+          options: [
+            { text: 'Paris', is_correct: true },
+            { text: 'London', is_correct: false },
+            { text: 'Berlin', is_correct: false },
+            { text: 'Madrid', is_correct: false },
+          ],
+          explanation: 'Paris is the capital and largest city of France',
+          points: 1,
+          chapter: 'Chapter 1',
+          difficulty: 'medium',
+        },
+        {
+          question_text: 'Is the Earth flat?',
+          question_type: 'true/false',
+          options: [
+            { text: 'True', is_correct: false },
+            { text: 'False', is_correct: true },
+          ],
+          explanation: 'The Earth is approximately spherical in shape',
+          points: 1,
+          chapter: 'Chapter 1',
+          difficulty: 'easy',
+        },
+      ],
+    };
+
+    const blob = new Blob([JSON.stringify(sampleData, null, 2)], {
+      type: 'application/json',
+    });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample_questions.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   return (
@@ -486,36 +595,57 @@ export default function QuestionBank() {
 
         {/* Questions Panel */}
         <div className="w-full md:w-1/3 px-2">
-          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+          <div className="bg-white rounded-lg shadow-md p-4 mb-4 h-[calc(100vh-2rem)]">
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-lg font-semibold text-slate-800">
                 Questions
               </h2>
               {selectedBank && (
-                <button
-                  onClick={() => setShowAddQuestionForm(true)}
-                  className="flex items-center px-2.5 py-1 text-sm bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors duration-200"
-                >
-                  <svg
-                    className="h-3.5 w-3.5 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowImportModal(true)}
+                    className="flex items-center px-3 py-1.5 text-sm bg-white text-slate-700 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors duration-200 shadow-sm"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  Add Question
-                </button>
+                    <svg
+                      className="h-4 w-4 mr-1.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                      />
+                    </svg>
+                    Import
+                  </button>
+                  <button
+                    onClick={() => setShowAddQuestionForm(true)}
+                    className="flex items-center px-3 py-1.5 text-sm bg-slate-700 text-white rounded-md hover:bg-slate-600 transition-colors duration-200 shadow-sm"
+                  >
+                    <svg
+                      className="h-4 w-4 mr-1.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Add Question
+                  </button>
+                </div>
               )}
             </div>
 
             {/* Questions List */}
-            <div className="space-y-3">
+            <div className="overflow-y-auto h-[calc(100%-4rem)] pr-2 space-y-3">
               {questions.map((question) => (
                 <div
                   key={question.question_id}
@@ -638,8 +768,20 @@ export default function QuestionBank() {
                       </p>
                     )}
                     {question.difficulty && (
-                      <p className="text-sm text-slate-500">
-                        Difficulty: {question.difficulty}
+                      <p className="text-sm text-slate-500 flex items-center">
+                        <span className="mr-2">Difficulty:</span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs ${
+                            question.difficulty === 'easy'
+                              ? 'bg-green-100 text-green-800'
+                              : question.difficulty === 'medium'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {question.difficulty.charAt(0).toUpperCase() +
+                            question.difficulty.slice(1)}
+                        </span>
                       </p>
                     )}
                     {question.created_by_first_name && (
@@ -1587,37 +1729,286 @@ export default function QuestionBank() {
       {/* Delete Confirmation Modal */}
       {deleteConfirmation.show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4">
-            <div className="mb-3">
-              <h3 className="text-lg font-semibold text-slate-800">
-                Confirm Deletion
-              </h3>
-              <p className="text-sm text-slate-600 mt-2">
-                Are you sure you want to delete this question bank? This will
-                also delete all questions in this bank.
-              </p>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 transform transition-all">
+            <div className="mb-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-800">
+                  Confirm Deletion
+                </h3>
+                <button
+                  onClick={() =>
+                    setDeleteConfirmation({
+                      show: false,
+                      type: '',
+                      id: null,
+                      item: null,
+                    })
+                  }
+                  className="text-slate-400 hover:text-slate-500 transition-colors duration-200"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="mt-4">
+                {deleteConfirmation.type === 'question' ? (
+                  <>
+                    <div className="bg-red-50 text-red-800 p-4 rounded-lg mb-4">
+                      <p className="text-sm font-medium">
+                        Are you sure you want to delete this question?
+                      </p>
+                      {deleteConfirmation.item && (
+                        <div className="mt-2 text-sm text-red-700">
+                          <p className="font-semibold">Question:</p>
+                          <p className="mt-1">
+                            {deleteConfirmation.item.question_text}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      This action cannot be undone. The question will be
+                      permanently removed from this question bank.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-red-50 text-red-800 p-4 rounded-lg mb-4">
+                      <p className="text-sm font-medium">
+                        Are you sure you want to delete this question bank?
+                      </p>
+                      <p className="mt-2 text-sm">
+                        All questions in this bank will be permanently deleted.
+                      </p>
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      This action cannot be undone. All questions in this bank
+                      will be permanently removed.
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="flex justify-end space-x-3 pt-4">
+
+            <div className="flex justify-end space-x-3 mt-6">
               <button
                 type="button"
                 onClick={() =>
-                  setDeleteConfirmation({ show: false, type: '', id: null })
+                  setDeleteConfirmation({
+                    show: false,
+                    type: '',
+                    id: null,
+                    item: null,
+                  })
                 }
-                className="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-gray-50
-                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={() => handleDeleteQuestionBank(deleteConfirmation.id)}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700
-                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
+                onClick={confirmDelete}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 flex items-center"
                 disabled={isLoading}
               >
-                {isLoading ? 'Deleting...' : 'Delete'}
+                {isLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4 mr-1.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                    Delete{' '}
+                    {deleteConfirmation.type === 'question'
+                      ? 'Question'
+                      : 'Question Bank'}
+                  </>
+                )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Questions Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-slate-800">
+                Import Questions
+              </h3>
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportStatus({
+                    loading: false,
+                    error: null,
+                    success: null,
+                  });
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                  }
+                }}
+                className="text-slate-400 hover:text-slate-500 transition-colors duration-200"
+              >
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-slate-600 mb-2">
+                Upload a JSON file containing questions to import. The file
+                should follow the required format.
+              </p>
+              <button
+                onClick={downloadSampleJson}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Download sample JSON template
+              </button>
+            </div>
+
+            <form onSubmit={handleImportQuestions} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  JSON File
+                </label>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="application/json"
+                  className="block w-full text-sm text-slate-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-md file:border-0
+                    file:text-sm file:font-medium
+                    file:bg-slate-50 file:text-slate-700
+                    hover:file:bg-slate-100
+                    focus:outline-none"
+                  required
+                />
+              </div>
+
+              {importStatus.error && (
+                <div className="text-sm text-red-600 bg-red-50 rounded-md p-3">
+                  {importStatus.error}
+                </div>
+              )}
+
+              {importStatus.success && (
+                <div className="text-sm text-green-600 bg-green-50 rounded-md p-3">
+                  {importStatus.success}
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportStatus({
+                      loading: false,
+                      error: null,
+                      success: null,
+                    });
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = '';
+                    }
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
+                  disabled={importStatus.loading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 disabled:bg-slate-400 disabled:cursor-not-allowed"
+                  disabled={importStatus.loading}
+                >
+                  {importStatus.loading ? (
+                    <span className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Importing...
+                    </span>
+                  ) : (
+                    'Import Questions'
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
