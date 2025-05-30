@@ -350,9 +350,12 @@ const adminService = {
 const instructorService = {
   getDashboardStats: async () => {
     try {
+      console.log('Fetching dashboard stats...');
       const response = await api.get('/instructor/dashboard');
+      console.log('Dashboard stats response:', response.data);
       return response.data;
     } catch (error) {
+      console.error('Dashboard stats error:', error);
       throw new Error(
         error.response?.data?.message || 'Failed to fetch dashboard stats'
       );
