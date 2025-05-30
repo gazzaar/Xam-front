@@ -14,6 +14,127 @@ export default function ExamTake() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [hasWarned, setHasWarned] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+
+  const submitExam = async () => {
+    if (submitting) return;
+
+    try {
+      setSubmitting(true);
+      const response = await axios.post(
+        `http://localhost:3000/api/student/exam/${examId}/submit`,
+        {
+          examId,
+          studentId: examSession.studentId,
+        }
+      );
+
+      toast.success('Exam submitted successfully!');
+      sessionStorage.removeItem('examSession');
+      navigate('/exam-complete', {
+        state: { score: response.data.score },
+        replace: true,
+      });
+    } catch (error) {
+      console.error('Error submitting exam:', error);
+      toast.error(
+        error.response?.data?.details ||
+          error.response?.data?.error ||
+          'Failed to submit exam'
+      );
+      setSubmitting(false);
+    }
+  };
+
+  // Show initial warning immediately when component mounts
+  useEffect(() => {
+    // Show initial warning using custom toast
+    toast('⚠️ Exam Security Rules', {
+      duration: 10000, // Increased duration for better visibility
+      style: {
+        background: '#FEF3C7',
+        color: '#92400E',
+        border: '1px solid #F59E0B',
+        padding: '16px',
+        borderRadius: '8px',
+      },
+    });
+
+    // Show a more detailed warning message separately
+    toast(
+      'Switching tabs or leaving this window is strictly prohibited. Any violation will be considered cheating.',
+      {
+        duration: 10000,
+        icon: '⚠️',
+        style: {
+          background: '#FEF3C7',
+          color: '#92400E',
+          border: '1px solid #F59E0B',
+          padding: '16px',
+          borderRadius: '8px',
+        },
+      }
+    );
+  }, []); // Empty dependency array ensures it only runs once on mount
+
+  // Tab switch detection effect
+  useEffect(() => {
+    const handleTabSwitch = () => {
+      if (!hasWarned) {
+        // First violation - show warning
+        setHasWarned(true);
+        setShowWarning(true);
+
+        toast.error(
+          'WARNING: Tab switching detected! This is your only warning. Next violation will end your exam.',
+          {
+            duration: 6000,
+            style: {
+              background: '#FEF3C7',
+              color: '#92400E',
+              border: '1px solid #F59E0B',
+            },
+          }
+        );
+
+        // Auto-hide warning after 6 seconds
+        setTimeout(() => {
+          setShowWarning(false);
+        }, 6000);
+      } else {
+        // Second violation - submit exam
+        toast.error('Exam automatically submitted due to attempted cheating.', {
+          duration: 5000,
+          style: {
+            background: '#FEE2E2', // Red background for error
+            color: '#991B1B', // Darker red text
+            border: '1px solid #DC2626',
+          },
+        });
+        submitExam();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleTabSwitch();
+      }
+    };
+
+    const handleBlur = () => {
+      handleTabSwitch();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [hasWarned, submitExam, examId, examSession?.studentId]);
 
   useEffect(() => {
     // Get exam session data
@@ -64,8 +185,6 @@ export default function ExamTake() {
         }
       );
 
-      console.log('Received questions data:', response.data);
-
       setExamSession((prev) => ({
         ...prev,
         ...response.data.exam,
@@ -103,36 +222,6 @@ export default function ExamTake() {
     } catch (error) {
       console.error('Error submitting answer:', error);
       toast.error('Failed to save answer');
-    }
-  };
-
-  const submitExam = async () => {
-    if (submitting) return;
-
-    try {
-      setSubmitting(true);
-      const response = await axios.post(
-        `http://localhost:3000/api/student/exam/${examId}/submit`,
-        {
-          examId,
-          studentId: examSession.studentId,
-        }
-      );
-
-      toast.success('Exam submitted successfully!');
-      sessionStorage.removeItem('examSession');
-      navigate('/exam-complete', {
-        state: { score: response.data.score },
-        replace: true,
-      });
-    } catch (error) {
-      console.error('Error submitting exam:', error);
-      toast.error(
-        error.response?.data?.details ||
-          error.response?.data?.error ||
-          'Failed to submit exam'
-      );
-      setSubmitting(false);
     }
   };
 
@@ -191,6 +280,43 @@ export default function ExamTake() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4">
+      {/* Warning Modal */}
+      {showWarning && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md">
+          <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded-lg shadow-lg">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-red-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  Academic Integrity Warning!
+                </h3>
+                <div className="mt-1 text-sm text-red-700">
+                  <p>
+                    Tab switching or leaving the exam window is considered
+                    cheating. This is your ONLY warning. Next violation will
+                    automatically submit your exam.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="max-w-4xl mx-auto mb-6">
         <div className="bg-white rounded-lg shadow-md p-4 flex justify-between items-center">

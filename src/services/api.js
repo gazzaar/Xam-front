@@ -350,12 +350,9 @@ const adminService = {
 const instructorService = {
   getDashboardStats: async () => {
     try {
-      console.log('Fetching dashboard stats...');
       const response = await api.get('/instructor/dashboard');
-      console.log('Dashboard stats response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Dashboard stats error:', error);
       throw new Error(
         error.response?.data?.message || 'Failed to fetch dashboard stats'
       );
@@ -374,7 +371,6 @@ const instructorService = {
   getExams: async () => {
     try {
       const response = await api.get('/instructor/exams');
-      console.log('Raw API response:', response.data);
       return response.data; // Return the data directly without wrapping
     } catch (error) {
       console.error('Error fetching exams:', error);
@@ -385,7 +381,6 @@ const instructorService = {
   getExamPreview: async (examId) => {
     try {
       const response = await api.get(`/instructor/exams/${examId}/preview`);
-      console.log('Exam preview response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error fetching exam preview:', error);
@@ -473,9 +468,7 @@ const instructorService = {
 
   getCourses: async () => {
     try {
-      console.log('Token in request:', localStorage.getItem('token'));
       const response = await api.get('/instructor/courses');
-      console.log('API Response:', response);
       return response.data;
     } catch (error) {
       console.error('Error in getCourses:', error.response || error);
@@ -648,12 +641,6 @@ const instructorService = {
     questionData
   ) => {
     try {
-      console.log(
-        'Updating question in bank:',
-        questionBankId,
-        'Question ID:',
-        questionId
-      );
       const response = await api.put(
         `/instructor/question-banks/${questionBankId}/questions/${questionId}`,
         questionData
@@ -685,7 +672,6 @@ const instructorService = {
   // Update question
   updateQuestion: async (questionId, questionData) => {
     try {
-      console.log('Updating question with data:', questionData);
       const response = await api.put(
         `/instructor/questions/${questionId}`,
         questionData
@@ -702,7 +688,6 @@ const instructorService = {
   // Delete question
   deleteQuestion: async (questionId) => {
     try {
-      console.log('Deleting question:', questionId);
       const response = await api.delete(`/instructor/questions/${questionId}`);
       return response.data;
     } catch (error) {
@@ -807,7 +792,6 @@ const questionBankService = {
 
   addQuestion: async (questionData) => {
     try {
-      console.log('Adding question with data:', questionData);
       const response = await api.post('/instructor/questions', questionData);
       return response.data;
     } catch (error) {
@@ -820,7 +804,6 @@ const questionBankService = {
 
   updateQuestion: async (questionId, questionData) => {
     try {
-      console.log('Updating question with data:', questionData);
       const response = await api.put(
         `/instructor/questions/${questionId}`,
         questionData

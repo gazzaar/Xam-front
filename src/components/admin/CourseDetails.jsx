@@ -9,16 +9,13 @@ export default function CourseDetails() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('CourseDetails mounted with courseId:', courseId);
     fetchCourseDetails();
   }, [courseId]);
 
   const fetchCourseDetails = async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching details for course ID:', courseId);
       const response = await adminService.getCourseDetails(courseId);
-      console.log('Course details response:', response);
       setCourse(response.data);
     } catch (err) {
       console.error('Error fetching course details:', err);

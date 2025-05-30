@@ -25,16 +25,11 @@ export default function InstructorDashboard() {
     try {
       setIsLoading(true);
       const data = await instructorService.getDashboardStats();
-      console.log('Dashboard API Response:', data);
 
       setStats(data);
 
       // Set overall grade distribution data
       if (data?.grade_distribution?.ranges?.length > 0) {
-        console.log(
-          'Setting up overall grade distribution chart with:',
-          data.grade_distribution
-        );
         setOverallGradeDistribution({
           options: {
             chart: {
@@ -98,16 +93,11 @@ export default function InstructorDashboard() {
           ],
         });
       } else {
-        console.log('No overall grade distribution data available');
         setOverallGradeDistribution(null);
       }
 
       // Set overall chapter performance data
       if (data?.chapter_performance?.chapters?.length > 0) {
-        console.log(
-          'Setting up overall chapter performance chart with:',
-          data.chapter_performance
-        );
         setOverallChapterPerformance({
           options: {
             chart: {
@@ -171,7 +161,6 @@ export default function InstructorDashboard() {
           ],
         });
       } else {
-        console.log('No overall chapter performance data available');
         setOverallChapterPerformance(null);
       }
     } catch (err) {

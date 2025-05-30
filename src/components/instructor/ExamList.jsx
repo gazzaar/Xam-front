@@ -13,7 +13,6 @@ export default function ExamList() {
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
-    console.log('ExamList component mounted, fetching exams...');
     fetchExams();
     // Set up periodic refresh every 30 seconds
     const refreshInterval = setInterval(fetchExams, 30000);
@@ -26,12 +25,9 @@ export default function ExamList() {
     setIsLoading(true);
     setError('');
     try {
-      console.log('Calling examService.getExams()...');
       const response = await examService.getExams();
-      console.log('Fetched exams response:', response);
 
       if (Array.isArray(response)) {
-        console.log(`Successfully fetched ${response.length} exams`);
         setExams(response);
       } else {
         console.error('Unexpected response format:', response);

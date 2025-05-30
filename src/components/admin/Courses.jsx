@@ -38,7 +38,6 @@ export default function Courses() {
     try {
       setIsLoading(true);
       const response = await adminService.getAllCourses();
-      console.log('Fetched courses:', response.data);
       setCourses(response.data);
     } catch (err) {
       toast.error(err.message || 'Failed to fetch courses');
@@ -50,14 +49,11 @@ export default function Courses() {
   const fetchInstructors = async () => {
     try {
       const response = await adminService.getAllInstructors();
-      console.log('Raw instructors response:', response);
-      console.log('All instructors before filtering:', response.data);
 
       // Get currently assigned instructors for the selected course
       const currentlyAssigned = selectedCourse
         ? selectedCourse.assigned_instructors?.map((i) => i.user_id) || []
         : [];
-      console.log('Currently assigned instructors:', currentlyAssigned);
 
       // Filter instructors who are both approved and active, and not already assigned
       const filteredInstructors = response.data.filter((instructor) => {
@@ -65,19 +61,9 @@ export default function Courses() {
           instructor.is_approved === true &&
           instructor.is_active === true &&
           !currentlyAssigned.includes(instructor.user_id);
-        console.log(
-          `Instructor ${instructor.first_name} ${instructor.last_name}:`,
-          {
-            is_approved: instructor.is_approved,
-            is_active: instructor.is_active,
-            already_assigned: currentlyAssigned.includes(instructor.user_id),
-            isEligible: isEligible,
-          }
-        );
         return isEligible;
       });
 
-      console.log('Filtered instructors:', filteredInstructors);
       setInstructors(filteredInstructors);
     } catch (err) {
       toast.error(err.message || 'Failed to fetch instructors');
@@ -283,7 +269,6 @@ export default function Courses() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
                       onClick={() => {
-                        console.log('Navigating to course:', course);
                         navigate(`/admin/courses/${course.course_id}`);
                       }}
                       className="text-slate-600 hover:text-slate-900 mr-4 font-medium"

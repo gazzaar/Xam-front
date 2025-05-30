@@ -56,7 +56,6 @@ export default function QuestionBank() {
   const fetchCourses = async () => {
     try {
       const response = await instructorService.getCourses();
-      console.log('Courses response from backend:', response);
       setCourses(response);
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -153,11 +152,6 @@ export default function QuestionBank() {
         chapter: questionFormData.chapter || '',
         difficulty: questionFormData.difficulty,
       };
-
-      console.log(
-        'Sending update data:',
-        JSON.stringify(questionData, null, 2)
-      );
 
       await instructorService.updateQuestionInQuestionBank(
         selectedBank.question_bank_id,
