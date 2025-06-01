@@ -18,7 +18,20 @@ export default function ExamStart() {
       return;
     }
 
-    setExamSession(JSON.parse(sessionData));
+    const session = JSON.parse(sessionData);
+    setExamSession(session);
+
+    // If this is a completed exam or exam has ended, redirect to results
+    if (session.redirectToResults) {
+      navigate(`/exam/${examId}/complete`, {
+        state: {
+          examLinkId: examId,
+          studentId: session.studentId,
+        },
+        replace: true,
+      });
+      return;
+    }
   }, [examId, navigate]);
 
   useEffect(() => {
@@ -36,10 +49,21 @@ export default function ExamStart() {
     setIsStarting(true);
   };
 
+  // Show loading state while checking session
   if (!examSession) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-slate-700"></div>
+      </div>
+    );
+  }
+
+  // Don't render the start page if we're redirecting to results
+  if (examSession.redirectToResults) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-slate-700"></div>
+        <p className="ml-3 text-slate-600">Redirecting to results...</p>
       </div>
     );
   }

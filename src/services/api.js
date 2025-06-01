@@ -956,6 +956,69 @@ const studentStatsService = {
   },
 };
 
+// Student Service
+const studentService = {
+  validateExamAccess: async (examId, studentId, email) => {
+    try {
+      const response = await api.post('/student/exam/validate-access', {
+        examLinkId: examId,
+        studentId,
+        email,
+      });
+
+      // Store exam session data
+      if (response.data.success) {
+        const sessionData = {
+          ...response.data.exam,
+          studentId,
+          email,
+          redirectToResults: response.data.redirectToResults,
+        };
+        sessionStorage.setItem('examSession', JSON.stringify(sessionData));
+      }
+
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.error || 'Failed to validate exam access'
+      );
+    }
+  },
+
+  getExamQuestions: async (examId, studentId) => {
+    try {
+      const response = await api.post(`/student/exam/${examId}/questions`, {
+        studentId,
+      });
+      console.log('Raw API Response:', response);
+      return response.data;
+    } catch (error) {
+      console.error('API Error:', error.response || error);
+      throw new Error(
+        error.response?.data?.error || 'Failed to fetch exam questions'
+      );
+    }
+  },
+
+  submitAnswer: async (examId, data) => {
+    try {
+      const response = await api.post(`/student/exam/${examId}/answer`, data);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || 'Failed to submit answer');
+    }
+  },
+
+  submitExam: async (examId, data) => {
+    try {
+      const response = await api.post(`/student/exam/${examId}/submit`, data);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || 'Failed to submit exam');
+    }
+  },
+};
+
 export {
   adminService,
   authService,
@@ -964,5 +1027,6 @@ export {
   instructorService,
   questionBankManagementService,
   questionBankService,
+  studentService,
   studentStatsService,
 };

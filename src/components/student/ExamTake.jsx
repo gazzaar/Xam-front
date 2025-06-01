@@ -1,7 +1,7 @@
-import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
+import { studentService } from '../../services/api';
 
 export default function ExamTake() {
   const { examId } = useParams();
@@ -22,20 +22,16 @@ export default function ExamTake() {
 
     try {
       setSubmitting(true);
-      const response = await axios.post(
-        `http://localhost:3000/api/student/exam/${examId}/submit`,
-        {
-          examId,
-          studentId: examSession.studentId,
-        }
-      );
-
-      toast.success('Exam submitted successfully!');
-      sessionStorage.removeItem('examSession');
-      navigate('/exam-complete', {
-        state: { score: response.data.score },
-        replace: true,
+      await studentService.submitExam(examId, {
+        examId,
+        studentId: examSession.studentId,
       });
+
+      toast.success(
+        'Exam submitted successfully! Results will be available after the exam ends.'
+      );
+      sessionStorage.removeItem('examSession');
+      navigate('/', { replace: true });
     } catch (error) {
       console.error('Error submitting exam:', error);
       toast.error(
@@ -157,11 +153,11 @@ export default function ExamTake() {
   }, [examId, navigate]);
 
   useEffect(() => {
-    if (examSession?.duration && examSession?.startTime) {
+    if (examSession?.timeLimitMinutes && examSession?.startTime) {
       const timer = setInterval(() => {
         const now = new Date().getTime();
         const start = new Date(examSession.startTime).getTime();
-        const duration = examSession.duration * 60 * 1000; // convert minutes to milliseconds
+        const duration = examSession.timeLimitMinutes * 60 * 1000; // convert minutes to milliseconds
         const remaining = duration - (now - start);
 
         if (remaining <= 0) {
@@ -178,18 +174,27 @@ export default function ExamTake() {
 
   const fetchExamQuestions = async (session) => {
     try {
-      const response = await axios.post(
-        `http://localhost:3000/api/student/exam/${examId}/questions`,
-        {
-          studentId: session.studentId,
-        }
+      const response = await studentService.getExamQuestions(
+        examId,
+        session.studentId
       );
+
+      console.log('Exam Questions Response:', response);
+
+      if (
+        !response.success ||
+        !response.questions ||
+        !Array.isArray(response.questions)
+      ) {
+        console.error('Invalid response format:', response);
+        throw new Error('Invalid response format from server');
+      }
 
       setExamSession((prev) => ({
         ...prev,
-        ...response.data.exam,
+        ...response.exam,
       }));
-      setQuestions(response.data.questions);
+      setQuestions(response.questions);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -209,16 +214,12 @@ export default function ExamTake() {
         [questionId]: answer,
       }));
 
-      // Submit answer to backend
-      await axios.post(
-        `http://localhost:3000/api/student/exam/${examId}/answer`,
-        {
-          examId,
-          studentId: examSession.studentId,
-          questionId,
-          answer,
-        }
-      );
+      await studentService.submitAnswer(examId, {
+        examId,
+        studentId: examSession.studentId,
+        questionId,
+        answer,
+      });
     } catch (error) {
       console.error('Error submitting answer:', error);
       toast.error('Failed to save answer');
@@ -276,7 +277,49 @@ export default function ExamTake() {
     );
   }
 
+  if (!questions || questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">
+            No Questions Available
+          </h2>
+          <p className="text-slate-600">
+            This exam has no questions available.
+          </p>
+          <button
+            onClick={() => navigate('/', { replace: true })}
+            className="mt-4 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const currentQuestionData = questions[currentQuestion];
+
+  if (!currentQuestionData) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">
+            Invalid Question
+          </h2>
+          <p className="text-slate-600">
+            The current question data is invalid.
+          </p>
+          <button
+            onClick={() => navigate('/', { replace: true })}
+            className="mt-4 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 p-4">
@@ -345,7 +388,7 @@ export default function ExamTake() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <span className="flex items-center justify-center w-8 h-8 text-sm font-semibold bg-slate-100 rounded-full text-slate-700">
-                  {currentQuestionData.questionNumber}
+                  {currentQuestionData.questionNumber || currentQuestion + 1}
                 </span>
                 <h2 className="text-xl font-semibold text-slate-800">
                   Question

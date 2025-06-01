@@ -18,14 +18,23 @@ export default function ExamComplete() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!examId) {
-      navigate('/', { replace: true });
-      return;
+    // If we don't have either examId or studentId, try to get from session storage
+    if (!examId || !studentId) {
+      const sessionData = sessionStorage.getItem('examSession');
+      if (!sessionData) {
+        setError('Missing exam information');
+        return;
+      }
+      const session = JSON.parse(sessionData);
+      if (!session.redirectToResults) {
+        navigate('/', { replace: true });
+        return;
+      }
     }
+
     if (examId) sessionStorage.setItem('lastExamLinkId', examId);
     fetchStats();
-    // eslint-disable-next-line
-  }, [examId, studentId]);
+  }, [examId, studentId, navigate]);
 
   const fetchStats = async () => {
     setLoadingStats(true);
@@ -174,148 +183,174 @@ export default function ExamComplete() {
               </svg>
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-800">
-                Exam Completed!
-              </h1>
+              <h1 className="text-3xl font-bold text-slate-800">Exam Status</h1>
               <p className="text-slate-600 mt-1">
-                Thank you for completing the exam. Here are your results:
+                {stats?.available
+                  ? 'Here are your exam results:'
+                  : 'Your exam has been recorded.'}
               </p>
             </div>
           </div>
 
-          {/* Score Display */}
-          <div className="flex justify-center mb-6">
-            <div className="bg-slate-50 rounded-lg px-8 py-4">
-              <div className="text-5xl font-bold text-slate-800 text-center">
-                {displayScore.toFixed(1)}%
-              </div>
-              <p className="text-slate-600 text-center mt-1">Final Score</p>
-            </div>
-          </div>
-
-          {/* Stats Section */}
+          {/* Loading and Error States */}
           {loadingStats ? (
-            <div className="text-center text-slate-600">Loading stats...</div>
-          ) : error ? (
-            <div className="text-center text-red-500">{error}</div>
-          ) : stats && !stats.available ? (
-            <div className="text-center text-slate-600">
-              Stats will be available after the exam ends for all students.
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800 mx-auto mb-4"></div>
+              <p className="text-slate-600">Loading exam statistics...</p>
             </div>
-          ) : stats && stats.available ? (
-            <div className="space-y-6">
-              {/* Performance Metrics */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Your Performance */}
-                <div className="bg-slate-50 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                    Your Performance
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Duration:</span>
-                      <span className="font-medium text-slate-800">
-                        {stats.student.duration
-                          ? `${Math.floor(
-                              stats.student.duration / 60
-                            )}m ${Math.round(stats.student.duration % 60)}s`
-                          : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Score:</span>
-                      <span className="font-medium text-slate-800">
-                        {displayScore.toFixed(1)}%
-                      </span>
-                    </div>
+          ) : error ? (
+            <div className="text-center text-red-500 py-8">
+              <p className="text-xl font-semibold mb-2">Error</p>
+              <p>{error}</p>
+              <button
+                onClick={handleNavigateHome}
+                className="mt-4 px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+              >
+                Return to Home
+              </button>
+            </div>
+          ) : !stats?.available ? (
+            <div className="text-center py-8">
+              <p className="text-xl font-semibold mb-2">
+                Thank you for completing the exam!
+              </p>
+              <p className="text-slate-600 mb-4">
+                Your responses have been recorded. The results will be available
+                after the exam ends for all students.
+              </p>
+              <button
+                onClick={handleNavigateHome}
+                className="px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+              >
+                Return to Home
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Score Display */}
+              <div className="flex justify-center mb-6">
+                <div className="bg-slate-50 rounded-lg px-8 py-4">
+                  <div className="text-5xl font-bold text-slate-800 text-center">
+                    {displayScore.toFixed(1)}%
                   </div>
-                </div>
-
-                {/* Class Performance */}
-                <div className="bg-slate-50 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                    Class Performance
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Average Score:</span>
-                      <span className="font-medium text-slate-800">
-                        {stats.class.avg_score.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Average Duration:</span>
-                      <span className="font-medium text-slate-800">
-                        {stats.class.avg_duration
-                          ? `${Math.floor(
-                              stats.class.avg_duration / 60
-                            )}m ${Math.round(stats.class.avg_duration % 60)}s`
-                          : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Score Comparison */}
-                <div className="bg-slate-50 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                    Score Comparison
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Your Score:</span>
-                      <span className="font-medium text-slate-800">
-                        {displayScore.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Class Average:</span>
-                      <span className="font-medium text-slate-800">
-                        {stats.class.avg_score.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Difference:</span>
-                      <span
-                        className={`font-medium ${
-                          displayScore > stats.class.avg_score
-                            ? 'text-[#00A550]'
-                            : 'text-[#DC343B]'
-                        }`}
-                      >
-                        {(displayScore - stats.class.avg_score).toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
+                  <p className="text-slate-600 text-center mt-1">Final Score</p>
                 </div>
               </div>
 
-              {/* Chapter Performance Chart */}
-              {apexOptions && apexSeries && (
-                <div className="bg-white rounded-lg p-6 mt-6">
-                  <ReactApexChart
-                    options={apexOptions}
-                    series={apexSeries}
-                    type="bar"
-                    height={300}
-                  />
-                </div>
-              )}
-            </div>
-          ) : null}
+              {/* Stats Section */}
+              <div className="space-y-6">
+                {/* Performance Metrics */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Your Performance */}
+                  <div className="bg-slate-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-4">
+                      Your Performance
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">Duration:</span>
+                        <span className="font-medium text-slate-800">
+                          {stats.student.duration
+                            ? `${Math.floor(
+                                stats.student.duration / 60
+                              )}m ${Math.round(stats.student.duration % 60)}s`
+                            : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">Score:</span>
+                        <span className="font-medium text-slate-800">
+                          {displayScore.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-          {/* Footer */}
-          <div className="mt-8 text-center">
-            <p className="text-slate-600 mb-4">
-              Your responses have been recorded. You may now close this window.
-            </p>
-            <button
-              onClick={handleNavigateHome}
-              className="px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
-            >
-              Return to Home
-            </button>
-          </div>
+                  {/* Class Performance */}
+                  <div className="bg-slate-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-4">
+                      Class Performance
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">Average Score:</span>
+                        <span className="font-medium text-slate-800">
+                          {stats.class.avg_score.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">
+                          Average Duration:
+                        </span>
+                        <span className="font-medium text-slate-800">
+                          {stats.class.avg_duration
+                            ? `${Math.floor(
+                                stats.class.avg_duration / 60
+                              )}m ${Math.round(stats.class.avg_duration % 60)}s`
+                            : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Score Comparison */}
+                  <div className="bg-slate-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-4">
+                      Score Comparison
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">Your Score:</span>
+                        <span className="font-medium text-slate-800">
+                          {displayScore.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">Class Average:</span>
+                        <span className="font-medium text-slate-800">
+                          {stats.class.avg_score.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">Difference:</span>
+                        <span
+                          className={`font-medium ${
+                            displayScore > stats.class.avg_score
+                              ? 'text-[#00A550]'
+                              : 'text-[#DC343B]'
+                          }`}
+                        >
+                          {(displayScore - stats.class.avg_score).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Chapter Performance Chart */}
+                {apexOptions && apexSeries && (
+                  <div className="bg-white rounded-lg p-6 mt-6">
+                    <ReactApexChart
+                      options={apexOptions}
+                      series={apexSeries}
+                      type="bar"
+                      height={300}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="mt-8 text-center">
+                <button
+                  onClick={handleNavigateHome}
+                  className="px-6 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+                >
+                  Return to Home
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

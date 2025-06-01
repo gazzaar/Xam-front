@@ -62,6 +62,7 @@ export default function App() {
           <Route path="/exam/:examId" element={<ExamAuth />} />
           <Route path="/exam/:examId/start" element={<ExamStart />} />
           <Route path="/exam/:examId/take" element={<ExamTake />} />
+          <Route path="/exam/:examId/complete" element={<ExamComplete />} />
           <Route path="/exam/:examId/stats" element={<ExamComplete />} />
           <Route path="/exam-complete" element={<ExamComplete />} />
 

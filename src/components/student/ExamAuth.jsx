@@ -1,7 +1,7 @@
-import axios from 'axios';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
+import { studentService } from '../../services/api';
 
 export default function ExamAuth() {
   const { examId } = useParams();
@@ -25,49 +25,31 @@ export default function ExamAuth() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(
-        'http://localhost:3000/api/student/exam/validate-access',
-        {
-          examLinkId: examId,
-          studentId: formData.studentId,
-          email: formData.email,
-        }
+      const response = await studentService.validateExamAccess(
+        examId,
+        formData.studentId,
+        formData.email
       );
 
-      if (response.data.success) {
-        if (response.data.showStats) {
-          // Redirect to stats page
-          navigate(`/exam/${examId}/stats`, {
+      if (response.success) {
+        // If exam has ended or student completed it, redirect to results
+        if (response.redirectToResults) {
+          navigate(`/exam/${examId}/complete`, {
             state: {
-              examId: response.data.examId,
               examLinkId: examId,
-              studentId: response.data.studentId,
+              studentId: formData.studentId,
             },
             replace: true,
           });
           return;
         }
-        // Store exam session data
-        sessionStorage.setItem(
-          'examSession',
-          JSON.stringify({
-            examId: response.data.exam.id,
-            studentId: formData.studentId,
-            studentName: response.data.exam.studentName,
-            duration: response.data.exam.duration,
-          })
-        );
 
-        // Show success message
+        // Otherwise proceed to exam start
         toast.success('Access granted! Redirecting to exam...');
-
-        // Redirect to exam page
         navigate(`/exam/${examId}/start`);
       }
     } catch (error) {
       console.error('Authentication error:', error);
-
-      // Show appropriate error message
       const errorMessage =
         error.response?.data?.details ||
         error.response?.data?.error ||
