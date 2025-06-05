@@ -25,7 +25,12 @@ export default function QuestionBank() {
   const [questionFormData, setQuestionFormData] = useState({
     question_text: '',
     question_type: 'multiple-choice',
-    options: [{ text: '', is_correct: false }],
+    options: [
+      { text: '', is_correct: false },
+      { text: '', is_correct: false },
+      { text: '', is_correct: false },
+      { text: '', is_correct: false },
+    ],
     explanation: '',
     points: 1,
     image_url: '',
@@ -103,6 +108,14 @@ export default function QuestionBank() {
         question.correct_answers?.[index] === 't',
     }));
 
+    // Ensure we have a valid difficulty value
+    const difficulty = question.difficulty
+      ? question.difficulty.toLowerCase()
+      : 'medium';
+    if (!['easy', 'medium', 'hard'].includes(difficulty)) {
+      console.warn('Invalid difficulty value:', question.difficulty);
+    }
+
     setEditingQuestion(question);
     setQuestionFormData({
       question_text: question.question_text,
@@ -112,7 +125,7 @@ export default function QuestionBank() {
       points: question.points || 1,
       image_url: question.image_url || '',
       chapter: question.chapter || '',
-      difficulty: question.difficulty || 'medium',
+      difficulty: difficulty,
     });
     setShowEditQuestionForm(true);
   };
@@ -142,6 +155,14 @@ export default function QuestionBank() {
         return;
       }
 
+      // Ensure we have a valid difficulty value
+      const difficulty = questionFormData.difficulty.toLowerCase();
+      if (!['easy', 'medium', 'hard'].includes(difficulty)) {
+        toast.error('Please select a valid difficulty level');
+        setIsLoading(false);
+        return;
+      }
+
       const questionData = {
         question_text: questionFormData.question_text,
         question_type: questionFormData.question_type,
@@ -150,7 +171,7 @@ export default function QuestionBank() {
         points: parseInt(questionFormData.points) || 1,
         image_url: questionFormData.image_url || '',
         chapter: questionFormData.chapter || '',
-        difficulty: questionFormData.difficulty,
+        difficulty: difficulty,
       };
 
       await instructorService.updateQuestionInQuestionBank(
@@ -158,19 +179,29 @@ export default function QuestionBank() {
         editingQuestion.question_id,
         questionData
       );
+
+      // Refresh questions list before closing the modal
+      await fetchQuestions(selectedBank.question_bank_id);
+
       setShowEditQuestionForm(false);
+      setEditingQuestion(null);
+      // Reset form data
       setQuestionFormData({
         question_text: '',
         question_type: 'multiple-choice',
-        options: [{ text: '', is_correct: false }],
+        options: [
+          { text: '', is_correct: false },
+          { text: '', is_correct: false },
+          { text: '', is_correct: false },
+          { text: '', is_correct: false },
+        ],
         explanation: '',
         points: 1,
         image_url: '',
         chapter: '',
         difficulty: 'medium',
       });
-      // Refresh questions list
-      await fetchQuestions(selectedBank.question_bank_id);
+
       toast.success('Question updated successfully');
     } catch (error) {
       console.error('Error updating question:', error);
@@ -242,7 +273,12 @@ export default function QuestionBank() {
       setQuestionFormData({
         question_text: '',
         question_type: 'multiple-choice',
-        options: [{ text: '', is_correct: false }],
+        options: [
+          { text: '', is_correct: false },
+          { text: '', is_correct: false },
+          { text: '', is_correct: false },
+          { text: '', is_correct: false },
+        ],
         explanation: '',
         points: 1,
         image_url: '',
@@ -806,7 +842,12 @@ export default function QuestionBank() {
                   setQuestionFormData({
                     question_text: '',
                     question_type: 'multiple-choice',
-                    options: [{ text: '', is_correct: false }],
+                    options: [
+                      { text: '', is_correct: false },
+                      { text: '', is_correct: false },
+                      { text: '', is_correct: false },
+                      { text: '', is_correct: false },
+                    ],
                     explanation: '',
                     points: 1,
                     image_url: '',
@@ -874,7 +915,12 @@ export default function QuestionBank() {
                         questionFormData.question_type === 'true/false'
                       ) {
                         // If changing from true/false to multiple-choice, reset options
-                        newOptions = [{ text: '', is_correct: false }];
+                        newOptions = [
+                          { text: '', is_correct: false },
+                          { text: '', is_correct: false },
+                          { text: '', is_correct: false },
+                          { text: '', is_correct: false },
+                        ];
                       }
 
                       setQuestionFormData({
@@ -992,10 +1038,11 @@ export default function QuestionBank() {
                     onChange={(e) =>
                       setQuestionFormData({
                         ...questionFormData,
-                        difficulty: e.target.value,
+                        difficulty: e.target.value.toLowerCase(),
                       })
                     }
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
+                    required
                   >
                     <option value="easy">Easy</option>
                     <option value="medium">Medium</option>
@@ -1114,7 +1161,7 @@ export default function QuestionBank() {
                                 Correct
                               </label>
                             </div>
-                            {index > 0 && (
+                            {index > 3 && (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1146,21 +1193,23 @@ export default function QuestionBank() {
                             )}
                           </div>
                         ))}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setQuestionFormData({
-                              ...questionFormData,
-                              options: [
-                                ...questionFormData.options,
-                                { text: '', is_correct: false },
-                              ],
-                            });
-                          }}
-                          className="mt-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
-                        >
-                          Add Option
-                        </button>
+                        {questionFormData.options.length < 6 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuestionFormData({
+                                ...questionFormData,
+                                options: [
+                                  ...questionFormData.options,
+                                  { text: '', is_correct: false },
+                                ],
+                              });
+                            }}
+                            className="mt-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
+                          >
+                            Add Option
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
@@ -1193,7 +1242,12 @@ export default function QuestionBank() {
                     setQuestionFormData({
                       question_text: '',
                       question_type: 'multiple-choice',
-                      options: [{ text: '', is_correct: false }],
+                      options: [
+                        { text: '', is_correct: false },
+                        { text: '', is_correct: false },
+                        { text: '', is_correct: false },
+                        { text: '', is_correct: false },
+                      ],
                       explanation: '',
                       points: 1,
                       image_url: '',
@@ -1220,8 +1274,8 @@ export default function QuestionBank() {
       {/* Edit Question Modal */}
       {showEditQuestionForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-4">
-            <div className="flex justify-between items-center mb-3">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-4 max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white z-10 flex justify-between items-center mb-3">
               <h3 className="text-lg font-semibold text-slate-800">
                 Edit Question
               </h3>
@@ -1231,7 +1285,12 @@ export default function QuestionBank() {
                   setQuestionFormData({
                     question_text: '',
                     question_type: 'multiple-choice',
-                    options: [{ text: '', is_correct: false }],
+                    options: [
+                      { text: '', is_correct: false },
+                      { text: '', is_correct: false },
+                      { text: '', is_correct: false },
+                      { text: '', is_correct: false },
+                    ],
                     explanation: '',
                     points: 1,
                     image_url: '',
@@ -1299,7 +1358,12 @@ export default function QuestionBank() {
                         questionFormData.question_type === 'true/false'
                       ) {
                         // If changing from true/false to multiple-choice, reset options
-                        newOptions = [{ text: '', is_correct: false }];
+                        newOptions = [
+                          { text: '', is_correct: false },
+                          { text: '', is_correct: false },
+                          { text: '', is_correct: false },
+                          { text: '', is_correct: false },
+                        ];
                       }
 
                       setQuestionFormData({
@@ -1417,10 +1481,11 @@ export default function QuestionBank() {
                     onChange={(e) =>
                       setQuestionFormData({
                         ...questionFormData,
-                        difficulty: e.target.value,
+                        difficulty: e.target.value.toLowerCase(),
                       })
                     }
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 py-2 px-3"
+                    required
                   >
                     <option value="easy">Easy</option>
                     <option value="medium">Medium</option>
@@ -1539,7 +1604,7 @@ export default function QuestionBank() {
                                 Correct
                               </label>
                             </div>
-                            {index > 0 && (
+                            {index > 3 && (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1571,21 +1636,23 @@ export default function QuestionBank() {
                             )}
                           </div>
                         ))}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setQuestionFormData({
-                              ...questionFormData,
-                              options: [
-                                ...questionFormData.options,
-                                { text: '', is_correct: false },
-                              ],
-                            });
-                          }}
-                          className="mt-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
-                        >
-                          Add Option
-                        </button>
+                        {questionFormData.options.length < 6 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuestionFormData({
+                                ...questionFormData,
+                                options: [
+                                  ...questionFormData.options,
+                                  { text: '', is_correct: false },
+                                ],
+                              });
+                            }}
+                            className="mt-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
+                          >
+                            Add Option
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
@@ -1616,13 +1683,13 @@ export default function QuestionBank() {
                   onClick={() => {
                     setShowEditQuestionForm(false);
                   }}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-200"
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors duration-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-all duration-200"
+                  className="px-4 py-2 text-sm font-medium text-white bg-slate-700 rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-all duration-200"
                 >
                   Update Question
                 </button>
