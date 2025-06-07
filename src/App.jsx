@@ -20,6 +20,7 @@ import InstructorLayout from './components/instructor/InstructorLayout';
 import QuestionBank from './components/instructor/QuestionBank';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
+import Payment from './components/Payment';
 import ExamAuth from './components/student/ExamAuth';
 import ExamComplete from './components/student/ExamComplete';
 import ExamStart from './components/student/ExamStart';
@@ -108,6 +109,9 @@ export default function App() {
               token ? <Navigate to={defaultRoute} replace /> : <LandingPage />
             }
           />
+
+          {/* Payment Routes */}
+          <Route path="/payment/:plan" element={<Payment />} />
         </Routes>
       </Router>
     </ThemeProvider>
