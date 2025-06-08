@@ -114,12 +114,12 @@ export default function CreateExam() {
     const endDateTime = new Date(examDate);
     endDateTime.setHours(endHour, endMinute);
 
-    // Calculate duration in minutes
-    const durationInMinutes = (endDateTime - startDateTime) / (1000 * 60);
+    // Only validate that duration is not more than 3 hours (180 minutes)
+    const MAX_DURATION = 180; // 3 hours in minutes
 
     return {
-      isValid: durationInMinutes >= duration,
-      actualDuration: durationInMinutes,
+      isValid: duration <= MAX_DURATION,
+      actualDuration: duration,
     };
   };
 
