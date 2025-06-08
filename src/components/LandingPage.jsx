@@ -315,7 +315,7 @@ export default function LandingPage() {
                   Basic Plan
                 </h3>
                 <div className='text-slate-900'>
-                  <span className='text-4xl font-bold'>$49</span>
+                  <span className='text-4xl font-bold'>£1500</span>
                   <span className='text-slate-600'>/month</span>
                 </div>
                 <p className='text-slate-600 mt-2 font-medium'>
@@ -390,7 +390,7 @@ export default function LandingPage() {
                   Pro Plan
                 </h3>
                 <div className='text-slate-900'>
-                  <span className='text-4xl font-bold'>$99</span>
+                  <span className='text-4xl font-bold'>£3750</span>
                   <span className='text-slate-600'>/month</span>
                 </div>
                 <p className='text-slate-600 mt-2 font-medium'>
@@ -462,7 +462,8 @@ export default function LandingPage() {
                   Enterprise Plan
                 </h3>
                 <div className='text-slate-900'>
-                  <span className='text-4xl font-bold'>Custom</span>
+                  <span className='text-4xl font-bold'>£11250</span>
+                  <span className='text-slate-600'>/month</span>
                 </div>
                 <p className='text-slate-600 mt-2 font-medium'>
                   For universities, corporations, and large institutions
@@ -522,7 +523,7 @@ export default function LandingPage() {
                 to='/payment/enterprise'
                 className='block text-center px-8 py-4 rounded-xl bg-gradient-to-r from-slate-800 to-slate-700 text-white hover:from-slate-700 hover:to-slate-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-medium'
               >
-                Contact Sales
+                Get Started
               </Link>
             </div>
           </div>
@@ -649,20 +650,7 @@ export default function LandingPage() {
               </p>
               <div className='flex space-x-4'>
                 <a
-                  href='#'
-                  className='text-slate-400 hover:text-white transition-colors'
-                >
-                  <span className='sr-only'>Twitter</span>
-                  <svg
-                    className='h-6 w-6'
-                    fill='currentColor'
-                    viewBox='0 0 24 24'
-                  >
-                    <path d='M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84' />
-                  </svg>
-                </a>
-                <a
-                  href='#'
+                  href='https://github/com/gazzaar/xam'
                   className='text-slate-400 hover:text-white transition-colors'
                 >
                   <span className='sr-only'>GitHub</span>
@@ -704,7 +692,7 @@ export default function LandingPage() {
                     onClick={() => scrollToSection('about')}
                     className='text-slate-400 hover:text-white transition-colors font-bold'
                   >
-                    About Us
+                    How it works
                   </button>
                 </li>
                 <li>
