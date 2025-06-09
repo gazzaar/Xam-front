@@ -334,12 +334,24 @@ export default function CreateExam() {
       return false;
     }
 
-    // Validate exam date is not in the past
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const examDate = new Date(examData.exam_date);
-    if (examDate < today) {
-      setError('Exam date cannot be in the past');
+    // Validate exam date and time is not in the past
+    const now = new Date();
+    const examStartDateTime = new Date(examData.exam_date);
+    const examEndDateTime = new Date(examData.exam_date);
+
+    const [startHour, startMinute] = examData.start_time.split(':').map(Number);
+    const [endHour, endMinute] = examData.end_time.split(':').map(Number);
+
+    examStartDateTime.setHours(startHour, startMinute, 0, 0);
+    examEndDateTime.setHours(endHour, endMinute, 0, 0);
+
+    if (examStartDateTime <= now) {
+      setError('Exam start date and time must be in the future');
+      return false;
+    }
+
+    if (examEndDateTime <= examStartDateTime) {
+      setError('End time must be after start time');
       return false;
     }
 
