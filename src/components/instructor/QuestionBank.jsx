@@ -831,8 +831,8 @@ export default function QuestionBank() {
       {/* Add Question Modal */}
       {showAddQuestionForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-4">
-            <div className="flex justify-between items-center mb-3">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-4 max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white z-10 flex justify-between items-center mb-3">
               <h3 className="text-lg font-semibold text-slate-800">
                 Add New Question
               </h3>
