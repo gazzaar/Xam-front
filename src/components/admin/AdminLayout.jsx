@@ -9,7 +9,7 @@ export default function AdminLayout() {
   const handleLogout = async () => {
     const response = await authService.logout();
     if (response.success) {
-      navigate('/login');
+      navigate('/');
     }
   };
 

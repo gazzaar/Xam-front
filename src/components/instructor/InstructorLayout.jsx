@@ -11,7 +11,7 @@ export default function InstructorLayout() {
   const handleLogout = async () => {
     const response = await authService.logout();
     if (response.success) {
-      navigate('/login');
+      navigate('/');
     }
   };
 
