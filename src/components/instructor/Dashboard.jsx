@@ -11,6 +11,12 @@ export default function InstructorDashboard() {
   const [overallChapterPerformance, setOverallChapterPerformance] =
     useState(null);
   const [selectedExam, setSelectedExam] = useState('overall');
+  const [currentStats, setCurrentStats] = useState({
+    active_exams_count: 0,
+    students_today: 0,
+    average_score: 0,
+    exams_count: 0,
+  });
 
   useEffect(() => {
     fetchDashboardStats();
@@ -20,6 +26,31 @@ export default function InstructorDashboard() {
     // Cleanup interval on component unmount
     return () => clearInterval(refreshInterval);
   }, []);
+
+  useEffect(() => {
+    if (stats) {
+      if (selectedExam === 'overall') {
+        setCurrentStats({
+          active_exams_count: stats.active_exams_count || 0,
+          students_today: stats.students_today || 0,
+          average_score: stats.average_score || 0,
+          exams_count: stats.exams_count || 0,
+        });
+      } else {
+        const selectedExamStats = stats.exam_stats.find(
+          (exam) => exam.exam_id.toString() === selectedExam
+        );
+        if (selectedExamStats) {
+          setCurrentStats({
+            active_exams_count: stats.active_exams_count || 0,
+            students_today: selectedExamStats.students_today || 0,
+            average_score: selectedExamStats.average_score || 0,
+            exams_count: stats.exams_count || 0,
+          });
+        }
+      }
+    }
+  }, [selectedExam, stats]);
 
   const fetchDashboardStats = async () => {
     try {
@@ -354,7 +385,7 @@ export default function InstructorDashboard() {
             </span>
           </div>
           <p className="mt-4 text-3xl font-bold text-slate-800">
-            {stats?.active_exams_count || 0}
+            {currentStats.active_exams_count}
           </p>
           <p className="mt-1 text-sm text-slate-600">Currently in progress</p>
         </div>
@@ -382,9 +413,13 @@ export default function InstructorDashboard() {
             </span>
           </div>
           <p className="mt-4 text-3xl font-bold text-slate-800">
-            {stats?.students_today || 0}
+            {currentStats.students_today}
           </p>
-          <p className="mt-1 text-sm text-slate-600">Taking my exams today</p>
+          <p className="mt-1 text-sm text-slate-600">
+            {selectedExam === 'overall'
+              ? 'Taking my exams today'
+              : 'Taking this exam today'}
+          </p>
         </div>
 
         {/* Average Score Card */}
@@ -410,9 +445,11 @@ export default function InstructorDashboard() {
             </span>
           </div>
           <p className="mt-4 text-3xl font-bold text-slate-800">
-            {stats?.average_score?.toFixed(1) || '0.0'}%
+            {currentStats.average_score?.toFixed(1) || '0.0'}%
           </p>
-          <p className="mt-1 text-sm text-slate-600">Across my exams</p>
+          <p className="mt-1 text-sm text-slate-600">
+            {selectedExam === 'overall' ? 'Across my exams' : 'For this exam'}
+          </p>
         </div>
 
         {/* Total Exams Card */}
@@ -438,7 +475,7 @@ export default function InstructorDashboard() {
             </span>
           </div>
           <p className="mt-4 text-3xl font-bold text-slate-800">
-            {stats?.exams_count || 0}
+            {currentStats.exams_count}
           </p>
           <p className="mt-1 text-sm text-slate-600">Total created</p>
         </div>
