@@ -344,6 +344,23 @@ const adminService = {
       );
     }
   },
+
+  resetInstructorPassword: async (instructorId, newPassword) => {
+    try {
+      const response = await api.post(
+        `/admin/instructors/${instructorId}/reset-password`,
+        { newPassword },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message || 'Failed to reset instructor password'
+      );
+    }
+  },
 };
 
 // Instructor Service

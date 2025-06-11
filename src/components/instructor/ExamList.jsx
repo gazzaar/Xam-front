@@ -10,7 +10,7 @@ export default function ExamList() {
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [copiedLinkId, setCopiedLinkId] = useState(null);
-  const [isExporting, setIsExporting] = useState(false);
+  const [exportingExams, setExportingExams] = useState({});
 
   useEffect(() => {
     fetchExams();
@@ -122,7 +122,7 @@ export default function ExamList() {
 
   const handleExportGrades = async (examId) => {
     try {
-      setIsExporting(true);
+      setExportingExams((prev) => ({ ...prev, [examId]: true }));
       const response = await examService.exportStudentGrades(examId);
 
       // Create a blob from the CSV data
@@ -149,7 +149,7 @@ export default function ExamList() {
       console.error('Error exporting grades:', err);
       toast.error('Failed to export grades');
     } finally {
-      setIsExporting(false);
+      setExportingExams((prev) => ({ ...prev, [examId]: false }));
     }
   };
 
@@ -361,7 +361,7 @@ export default function ExamList() {
                     'completed' && (
                     <button
                       onClick={() => handleExportGrades(exam.exam_id)}
-                      disabled={isExporting}
+                      disabled={exportingExams[exam.exam_id]}
                       className="w-full inline-flex items-center justify-center px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors duration-200"
                     >
                       <svg
@@ -377,7 +377,9 @@ export default function ExamList() {
                           d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                         />
                       </svg>
-                      {isExporting ? 'Exporting...' : 'Export Grades'}
+                      {exportingExams[exam.exam_id]
+                        ? 'Exporting...'
+                        : 'Export Grades'}
                     </button>
                   )}
 

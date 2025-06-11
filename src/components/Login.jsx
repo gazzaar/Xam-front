@@ -38,12 +38,17 @@ export default function Login() {
     };
     let isValid = true;
 
-    // Username validation
+    // Username validation - must contain at least one letter
+    const usernameRegex = /^(?=.*[a-zA-Z])[a-zA-Z0-9_]+$/;
     if (!formData.username.trim()) {
       newErrors.username = 'Username is required';
       isValid = false;
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
+    } else if (formData.username.length < 3 || formData.username.length > 30) {
+      newErrors.username = 'Username must be between 3 and 30 characters';
+      isValid = false;
+    } else if (!usernameRegex.test(formData.username)) {
+      newErrors.username =
+        'Username must contain at least one letter and can only contain letters, numbers, and underscores';
       isValid = false;
     }
 
@@ -53,6 +58,15 @@ export default function Login() {
       isValid = false;
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
+      isValid = false;
+    } else if (formData.password.length > 20) {
+      newErrors.password = 'Password must be less than 20 characters';
+      isValid = false;
+    } else if (
+      !/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(formData.password)
+    ) {
+      newErrors.password =
+        'Password must contain at least one letter and one number';
       isValid = false;
     }
 
