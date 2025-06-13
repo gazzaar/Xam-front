@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
 import { studentService } from '../../services/api';
@@ -16,6 +16,11 @@ export default function ExamTake() {
   const [submitting, setSubmitting] = useState(false);
   const [hasWarned, setHasWarned] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
+
+  // Prevent double toast in StrictMode
+  const hasShownInitialWarning = useRef(false);
+  // Prevent double tab switch handling
+  const tabSwitchLockRef = useRef(false);
 
   const submitExam = async () => {
     if (submitting) return;
@@ -45,43 +50,36 @@ export default function ExamTake() {
 
   // Show initial warning immediately when component mounts
   useEffect(() => {
-    // Show initial warning using custom toast
-    toast('⚠️ Exam Security Rules', {
-      duration: 10000, // Increased duration for better visibility
-      style: {
-        background: '#FEF3C7',
-        color: '#92400E',
-        border: '1px solid #F59E0B',
-        padding: '16px',
-        borderRadius: '8px',
-      },
-    });
-
-    // Show a more detailed warning message separately
-    toast(
-      'Switching tabs or leaving this window is strictly prohibited. Any violation will be considered cheating.',
-      {
-        duration: 10000,
-        icon: '⚠️',
-        style: {
-          background: '#FEF3C7',
-          color: '#92400E',
-          border: '1px solid #F59E0B',
-          padding: '16px',
-          borderRadius: '8px',
-        },
-      }
-    );
+    if (!hasShownInitialWarning.current) {
+      toast(
+        '⚠️ Exam Security Rules: Switching tabs or leaving this window is strictly prohibited. Any violation will be considered cheating.',
+        {
+          duration: 10000,
+          style: {
+            background: '#FEF3C7',
+            color: '#92400E',
+            border: '1px solid #F59E0B',
+            padding: '16px',
+            borderRadius: '8px',
+          },
+        }
+      );
+      hasShownInitialWarning.current = true;
+    }
   }, []); // Empty dependency array ensures it only runs once on mount
 
   // Tab switch detection effect
   useEffect(() => {
     const handleTabSwitch = () => {
+      if (tabSwitchLockRef.current) return;
+      tabSwitchLockRef.current = true;
+      setTimeout(() => {
+        tabSwitchLockRef.current = false;
+      }, 1000); // debounce for 1s
+
       if (!hasWarned) {
-        // First violation - show warning
         setHasWarned(true);
         setShowWarning(true);
-
         toast.error(
           'WARNING: Tab switching detected! This is your only warning. Next violation will end your exam.',
           {
@@ -93,18 +91,15 @@ export default function ExamTake() {
             },
           }
         );
-
-        // Auto-hide warning after 6 seconds
         setTimeout(() => {
           setShowWarning(false);
         }, 6000);
       } else {
-        // Second violation - submit exam
         toast.error('Exam automatically submitted due to attempted cheating.', {
           duration: 5000,
           style: {
-            background: '#FEE2E2', // Red background for error
-            color: '#991B1B', // Darker red text
+            background: '#FEE2E2',
+            color: '#991B1B',
             border: '1px solid #DC2626',
           },
         });
@@ -118,19 +113,14 @@ export default function ExamTake() {
       }
     };
 
-    const handleBlur = () => {
-      handleTabSwitch();
-    };
-
+    window.addEventListener('blur', handleTabSwitch);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleBlur);
 
-    // Cleanup
     return () => {
+      window.removeEventListener('blur', handleTabSwitch);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
     };
-  }, [hasWarned, submitExam, examId, examSession?.studentId]);
+  }, [hasWarned, submitExam]);
 
   useEffect(() => {
     // Get exam session data
