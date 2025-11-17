@@ -18,7 +18,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: import.meta.env.VITE_API_URL,
+        target: "https://xam-production.up.railway.app",
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path,

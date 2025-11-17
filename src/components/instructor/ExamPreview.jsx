@@ -20,7 +20,7 @@ const ExamPreview = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/instructor/exams/${id}/preview`,
+        `$https://xam-production.up.railway.app/api/instructor/exams/${id}/preview`,
         {
           headers: {
             "Content-Type": "application/json",
