@@ -2,8 +2,6 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
-import dotenv from "dotenv";
-dotenv.config();
 
 const ExamPreview = () => {
   const { id } = useParams();
@@ -22,7 +20,7 @@ const ExamPreview = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `${process.env.VITE_API_URL}/api/instructor/exams/${id}/preview`,
+        `${import.meta.env.VITE_API_URL}/api/instructor/exams/${id}/preview`,
         {
           headers: {
             "Content-Type": "application/json",
