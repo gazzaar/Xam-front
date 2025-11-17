@@ -1,7 +1,7 @@
-import axios from 'axios';
-import { useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
-import { useNavigate, useParams } from 'react-router-dom';
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import { useNavigate, useParams } from "react-router-dom";
 
 const ExamPreview = () => {
   const { id } = useParams();
@@ -9,7 +9,7 @@ const ExamPreview = () => {
   const [exam, setExam] = useState(null);
   const [sampleQuestions, setSampleQuestions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchExamPreview();
@@ -18,51 +18,51 @@ const ExamPreview = () => {
   const fetchExamPreview = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await axios.get(
-        `http://localhost:3000/api/instructor/exams/${id}/preview`,
+        `${process.env.VITE_API_URL}/api/instructor/exams/${id}/preview`,
         {
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
-      console.log('Exam preview data:', response.data);
+      console.log("Exam preview data:", response.data);
 
       if (response.data) {
         setExam(response.data.exam);
         setSampleQuestions(response.data.sampleQuestions || []);
       } else {
-        setError('Failed to load exam preview');
+        setError("Failed to load exam preview");
       }
     } catch (err) {
-      console.error('Error fetching exam preview:', err);
-      setError(err.message || 'Failed to load exam preview');
-      toast.error(err.message || 'Failed to load exam preview');
+      console.error("Error fetching exam preview:", err);
+      setError(err.message || "Failed to load exam preview");
+      toast.error(err.message || "Failed to load exam preview");
     } finally {
       setIsLoading(false);
     }
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
   const formatTime = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
       hour12: true,
     });
   };
@@ -73,58 +73,58 @@ const ExamPreview = () => {
     const end = new Date(endDate);
 
     if (now < start) {
-      return 'upcoming';
+      return "upcoming";
     } else if (now >= start && now <= end) {
-      return 'active';
+      return "active";
     } else {
-      return 'completed';
+      return "completed";
     }
   };
 
   const getStatusBadgeClass = (status) => {
     switch (status?.toLowerCase()) {
-      case 'active':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'upcoming':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'completed':
-        return 'bg-slate-100 text-slate-800 border-slate-200';
+      case "active":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "upcoming":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "completed":
+        return "bg-slate-100 text-slate-800 border-slate-200";
       default:
-        return 'bg-slate-100 text-slate-800 border-slate-200';
+        return "bg-slate-100 text-slate-800 border-slate-200";
     }
   };
 
   const getDifficultyBadgeClass = (difficulty) => {
     switch (difficulty?.toLowerCase()) {
-      case 'hard':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'easy':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case "hard":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "medium":
+        return "bg-orange-100 text-orange-800 border-orange-200";
+      case "easy":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
       default:
-        return 'bg-slate-100 text-slate-800 border-slate-200';
+        return "bg-slate-100 text-slate-800 border-slate-200";
     }
   };
 
   const calculateDifficulty = (metadata) => {
     try {
-      if (!metadata || !metadata.difficultyDistribution) return 'N/A';
+      if (!metadata || !metadata.difficultyDistribution) return "N/A";
 
       const dist = metadata.difficultyDistribution;
       const totalQuestions = dist.easy + dist.medium + dist.hard;
 
-      if (!totalQuestions) return 'N/A';
+      if (!totalQuestions) return "N/A";
 
       const hardPercentage = (dist.hard / totalQuestions) * 100;
       const mediumPercentage = (dist.medium / totalQuestions) * 100;
 
-      if (hardPercentage > 60) return 'Hard';
-      if (hardPercentage + mediumPercentage > 60) return 'Medium';
-      return 'Easy';
+      if (hardPercentage > 60) return "Hard";
+      if (hardPercentage + mediumPercentage > 60) return "Medium";
+      return "Easy";
     } catch (error) {
-      console.error('Error calculating difficulty:', error);
-      return 'N/A';
+      console.error("Error calculating difficulty:", error);
+      return "N/A";
     }
   };
 
@@ -144,7 +144,7 @@ const ExamPreview = () => {
         </div>
         <div className="text-red-700 mb-4">{error}</div>
         <button
-          onClick={() => navigate('/instructor/exams')}
+          onClick={() => navigate("/instructor/exams")}
           className="px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-600 transition-colors duration-200 font-medium"
         >
           Back to Exams
@@ -160,7 +160,7 @@ const ExamPreview = () => {
           Exam not found
         </div>
         <button
-          onClick={() => navigate('/instructor/exams')}
+          onClick={() => navigate("/instructor/exams")}
           className="px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-600 transition-colors duration-200 font-medium"
         >
           Back to Exams
@@ -181,7 +181,7 @@ const ExamPreview = () => {
               <div className="mt-2 flex items-center gap-2">
                 <span
                   className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusBadgeClass(
-                    calculateStatus(exam.start_date, exam.end_date)
+                    calculateStatus(exam.start_date, exam.end_date),
                   )}`}
                 >
                   {calculateStatus(exam.start_date, exam.end_date)}
@@ -189,7 +189,7 @@ const ExamPreview = () => {
                 {exam.exam_metadata && (
                   <span
                     className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getDifficultyBadgeClass(
-                      calculateDifficulty(exam.exam_metadata)
+                      calculateDifficulty(exam.exam_metadata),
                     )}`}
                   >
                     {calculateDifficulty(exam.exam_metadata)}
@@ -198,7 +198,7 @@ const ExamPreview = () => {
               </div>
             </div>
             <button
-              onClick={() => navigate('/instructor/exams')}
+              onClick={() => navigate("/instructor/exams")}
               className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors duration-200 font-medium"
             >
               Back to Exams
@@ -308,7 +308,7 @@ const ExamPreview = () => {
                   >
                     <p className="font-medium text-slate-800">{ref.chapter}</p>
                     <p className="text-slate-600">
-                      {ref.count} {ref.count === 1 ? 'question' : 'questions'}
+                      {ref.count} {ref.count === 1 ? "question" : "questions"}
                     </p>
                   </div>
                 ))}
@@ -345,12 +345,12 @@ const ExamPreview = () => {
                           <img
                             src={(() => {
                               const url = question.image_url;
-                              if (!url) return '';
+                              if (!url) return "";
 
                               // For external URLs, use the proxy service
-                              if (url.startsWith('http')) {
+                              if (url.startsWith("http")) {
                                 return `https://images.weserv.nl/?url=${encodeURIComponent(
-                                  url
+                                  url,
                                 )}`;
                               }
 
@@ -361,16 +361,16 @@ const ExamPreview = () => {
                             className="rounded-lg object-contain w-full max-h-[400px]"
                             onError={(e) => {
                               console.error(
-                                'Image failed to load:',
-                                e.target.src
+                                "Image failed to load:",
+                                e.target.src,
                               );
                               e.target.onerror = null;
 
                               // Create a fallback div with error message
                               const parent = e.target.parentElement;
-                              const fallbackDiv = document.createElement('div');
+                              const fallbackDiv = document.createElement("div");
                               fallbackDiv.className =
-                                'p-4 text-center text-slate-500 bg-slate-50 rounded-lg';
+                                "p-4 text-center text-slate-500 bg-slate-50 rounded-lg";
                               fallbackDiv.innerHTML = `
                                 <svg class="w-12 h-12 mx-auto mb-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -380,19 +380,19 @@ const ExamPreview = () => {
                               `;
 
                               // Replace the img with the fallback
-                              e.target.style.display = 'none';
+                              e.target.style.display = "none";
                               parent.appendChild(fallbackDiv);
 
-                              toast.error('Failed to load question image', {
+                              toast.error("Failed to load question image", {
                                 duration: 3000,
-                                icon: '🖼️',
+                                icon: "🖼️",
                               });
                             }}
                           />
                         </div>
                       )}
 
-                      {question.question_type === 'multiple-choice' && (
+                      {question.question_type === "multiple-choice" && (
                         <div className="space-y-3 ml-4">
                           {question.answers &&
                             question.answers.map((answer, aIndex) => (
@@ -400,15 +400,15 @@ const ExamPreview = () => {
                                 key={aIndex}
                                 className={`flex items-center p-3 rounded-md ${
                                   answer.is_correct
-                                    ? 'bg-green-50 border border-green-200'
-                                    : 'bg-slate-50 border border-slate-200'
+                                    ? "bg-green-50 border border-green-200"
+                                    : "bg-slate-50 border border-slate-200"
                                 }`}
                               >
                                 <div
                                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 ${
                                     answer.is_correct
-                                      ? 'border-green-500 bg-green-500'
-                                      : 'border-slate-300'
+                                      ? "border-green-500 bg-green-500"
+                                      : "border-slate-300"
                                   }`}
                                 >
                                   {answer.is_correct && (
@@ -424,8 +424,8 @@ const ExamPreview = () => {
                                 <span
                                   className={
                                     answer.is_correct
-                                      ? 'text-green-800 font-medium'
-                                      : 'text-slate-700'
+                                      ? "text-green-800 font-medium"
+                                      : "text-slate-700"
                                   }
                                 >
                                   {answer.answer_text}
@@ -435,26 +435,26 @@ const ExamPreview = () => {
                         </div>
                       )}
 
-                      {question.question_type === 'true/false' && (
+                      {question.question_type === "true/false" && (
                         <div className="space-y-3 ml-4">
-                          {['True', 'False'].map((option) => {
+                          {["True", "False"].map((option) => {
                             const isCorrect =
-                              (option === 'True' && question.correct_answer) ||
-                              (option === 'False' && !question.correct_answer);
+                              (option === "True" && question.correct_answer) ||
+                              (option === "False" && !question.correct_answer);
                             return (
                               <div
                                 key={option}
                                 className={`flex items-center p-3 rounded-md ${
                                   isCorrect
-                                    ? 'bg-green-50 border border-green-200'
-                                    : 'bg-slate-50 border border-slate-200'
+                                    ? "bg-green-50 border border-green-200"
+                                    : "bg-slate-50 border border-slate-200"
                                 }`}
                               >
                                 <div
                                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 ${
                                     isCorrect
-                                      ? 'border-green-500 bg-green-500'
-                                      : 'border-slate-300'
+                                      ? "border-green-500 bg-green-500"
+                                      : "border-slate-300"
                                   }`}
                                 >
                                   {isCorrect && (
@@ -470,8 +470,8 @@ const ExamPreview = () => {
                                 <span
                                   className={
                                     isCorrect
-                                      ? 'text-green-800 font-medium'
-                                      : 'text-slate-700'
+                                      ? "text-green-800 font-medium"
+                                      : "text-slate-700"
                                   }
                                 >
                                   {option}
@@ -483,7 +483,7 @@ const ExamPreview = () => {
                       )}
 
                       <div className="mt-3 ml-4 text-sm text-slate-500">
-                        Chapter: {question.chapter || 'N/A'}
+                        Chapter: {question.chapter || "N/A"}
                       </div>
                     </div>
                   </div>
