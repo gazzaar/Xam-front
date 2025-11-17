@@ -2,6 +2,8 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
+import dotenv from "dotenv";
+dotenv.config();
 
 const ExamPreview = () => {
   const { id } = useParams();
